@@ -4,7 +4,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from utils.constants import CONSISTENT_JOKE, JOKE_TYPES
-from utils.Utils import extract_joke
+from utils.formatters import extract_joke
 from utils.RequestAPIJokes import (
     get_joke,
     get_ten_jokes,

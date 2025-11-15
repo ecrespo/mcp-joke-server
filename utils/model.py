@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-@dataclass
+@dataclass(frozen=True)
 class Joke:
     """
     Represents a Joke with its type, setup, punchline, and identifier.
@@ -24,7 +24,7 @@ class Joke:
     punchline: str
     id: int
 
-@dataclass
+@dataclass(frozen=True)
 class Jokes:
     """
     Represents a collection of jokes.

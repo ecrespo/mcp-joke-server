@@ -7,7 +7,7 @@ consistent error handling across all API operations.
 """
 
 import httpx
-from typing import Annotated, TypeVar, Generic, Callable, Any
+from typing import Annotated, TypeVar, Callable, Any
 from pydantic import Field
 
 from utils.model import Joke, Jokes

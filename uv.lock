@@ -548,6 +548,7 @@ dependencies = [
     { name = "httpx" },
     { name = "loguru" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-decouple" },
     { name = "rich" },
 ]
@@ -558,6 +559,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.12.4" },
+    { name = "pydantic-settings", specifier = ">=2.8.0" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "rich", specifier = ">=14.2.0" },
 ]

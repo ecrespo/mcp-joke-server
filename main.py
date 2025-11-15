@@ -1,3 +1,10 @@
+"""
+MCP Joke Server - Main application module.
+
+This module implements the FastMCP server with tools for fetching jokes
+using the Repository Pattern for data access abstraction.
+"""
+
 from typing import Annotated
 
 from fastmcp import FastMCP
@@ -5,12 +12,14 @@ from pydantic import Field
 
 from utils.constants import CONSISTENT_JOKE, JOKE_TYPES
 from utils.formatters import extract_joke
-from utils.RequestAPIJokes import (
-    get_joke,
-    get_jokes_by_type,
-    get_joke_by_id
-)
+from repositories import get_joke_repository
+
+# Initialize MCP server
 mcp = FastMCP("jokes (python)")
+
+# Initialize joke repository (singleton pattern)
+# Uses cached repository by default for better performance
+joke_repo = get_joke_repository()
 
 
 
@@ -30,18 +39,18 @@ def tool_get_consistent_joke() -> str:
 
 
 @mcp.tool
-def tool_get_joke()-> str:
+def tool_get_joke() -> str:
     """
-    Fetches a joke from an external joke provider using its API and extracts the relevant
-    text content of the joke.
+    Fetches a random joke from the joke repository.
 
-    This function serves as an interface to interact with an underlying joke API. It retrieves
-    raw data, processes it, and extracts a structured joke string for further consumption.
+    This function uses the Repository Pattern to abstract data access,
+    allowing for flexible data sources (HTTP API, cache, database, etc.)
+    without changing the tool implementation.
 
     :return: A string containing the extracted joke.
     :rtype: str
     """
-    joke = get_joke()
+    joke = joke_repo.get_random_joke()
     resp = joke.__dict__
     return extract_joke(resp)
 
@@ -49,18 +58,18 @@ def tool_get_joke()-> str:
 @mcp.tool
 def tool_get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> str:
     """
-    Retrieve a joke by its unique identifier.
+    Retrieve a joke by its unique identifier using the repository.
 
-    This function processes the given joke ID, fetches the appropriate joke
-    data, and extracts the relevant joke content to return. It ensures
-    that the joke ID falls within the specified range of valid values.
+    This function uses the Repository Pattern to fetch a specific joke by ID.
+    The repository handles caching automatically, improving performance for
+    repeated requests.
 
-    :param joke_id: The unique identifier for the joke to be fetched.
+    :param joke_id: The unique identifier for the joke to be fetched (1-451).
     :type joke_id: Annotated[int, Field(ge=1, le=451)]
     :return: The content of the joke corresponding to the provided joke ID.
     :rtype: str
     """
-    joke = get_joke_by_id(joke_id)
+    joke = joke_repo.get_joke_by_id(joke_id)
     resp = joke.__dict__
     return extract_joke(resp)
 
@@ -68,19 +77,18 @@ def tool_get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> str:
 @mcp.tool
 def tool_get_joke_by_type(joke_type: JOKE_TYPES) -> str:
     """
-    Fetches a joke based on the specified joke type.
+    Fetches a joke based on the specified joke type using the repository.
 
-    This tool retrieves a joke of a particular type from a predefined dataset or API.
-    The function ensures that jokes are filtered based on their type and then properly
-    processed to extract only the relevant joke content. The result is returned
-    as a string that represents a single joke.
+    This tool uses the Repository Pattern to retrieve jokes filtered by type.
+    The repository provides caching and abstraction over the data source,
+    making the code more maintainable and testable.
 
-    :param joke_type: Type of joke to fetch.
+    :param joke_type: Type of joke to fetch (general, knock-knock, programming, dad).
     :type joke_type: JOKE_TYPES
     :return: A single joke string filtered by the specified joke type.
     :rtype: str
     """
-    jokes = get_jokes_by_type(joke_type)
+    jokes = joke_repo.get_jokes_by_type(joke_type)
     resp = jokes.__dict__['jokes'][0].__dict__
 
     return extract_joke(resp)

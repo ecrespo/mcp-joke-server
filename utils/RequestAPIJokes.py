@@ -125,7 +125,10 @@ class JokeAPIClient:
         :raises JokeAPIHTTPError: If the API returns an error status
         :raises JokeAPIParseError: If response parsing fails
         """
-        return self._make_request("/random_ten", lambda data: Jokes(jokes=data))
+        return self._make_request(
+            "/random_ten",
+            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+        )
 
     def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
         """
@@ -155,7 +158,10 @@ class JokeAPIClient:
         :raises JokeAPIHTTPError: If the API returns an error status
         :raises JokeAPIParseError: If response parsing fails
         """
-        return self._make_request(f"/jokes/{joke_type}/random", lambda data: Jokes(jokes=data))
+        return self._make_request(
+            f"/jokes/{joke_type}/random",
+            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+        )
 
 
 # Singleton instance for convenience

@@ -7,7 +7,6 @@ from utils.constants import CONSISTENT_JOKE, JOKE_TYPES
 from utils.formatters import extract_joke
 from utils.RequestAPIJokes import (
     get_joke,
-    get_ten_jokes,
     get_jokes_by_type,
     get_joke_by_id
 )

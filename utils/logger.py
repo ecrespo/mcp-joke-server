@@ -6,7 +6,10 @@ from rich.logging import RichHandler
 from rich.traceback import install as install_rich_traceback
 from rich.theme import Theme
 from rich.markup import escape
-from utils.config import settings
+from utils.config import Settings
+
+# Create settings instance for backward compatibility
+settings = Settings()
 
 # Instalar Rich traceback para mejores mensajes de error
 install_rich_traceback(show_locals=True)

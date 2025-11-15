@@ -13,7 +13,7 @@ from repositories.base import (
 )
 from repositories.http_repository import HTTPJokeRepository
 from repositories.cached_repository import CachedJokeRepository
-from repositories.factory import RepositoryFactory, get_joke_repository
+from repositories.factory import RepositoryFactory, get_joke_repository, reset_repository
 
 __all__ = [
     # Base interfaces and exceptions
@@ -26,4 +26,5 @@ __all__ = [
     # Factory
     'RepositoryFactory',
     'get_joke_repository',
+    'reset_repository',
 ]

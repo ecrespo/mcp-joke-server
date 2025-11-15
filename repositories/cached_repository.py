@@ -191,8 +191,8 @@ class CachedJokeRepository(JokeRepository):
         log.debug(f"Fetching joke {joke_id} from repository")
         joke = self._repository.get_joke_by_id(joke_id)
 
-        # Cache the result (longer TTL for individual jokes)
-        self._put_in_cache(cache_key, joke, ttl=3600)  # 1 hour
+        # Cache the result
+        self._put_in_cache(cache_key, joke)
 
         return joke
 

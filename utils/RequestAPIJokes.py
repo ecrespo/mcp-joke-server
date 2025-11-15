@@ -1,152 +1,231 @@
+"""
+Joke API client module.
+
+This module provides a clean interface for interacting with the joke API service,
+implementing the Template Method pattern to reduce code duplication and ensure
+consistent error handling across all API operations.
+"""
+
 import httpx
-from typing import  Annotated
+from typing import Annotated, TypeVar, Generic, Callable, Any
 from pydantic import Field
 
 from utils.model import Joke, Jokes
 from utils.logger import log
 from utils.constants import URL, JOKE_TYPES
+from utils.exceptions import (
+    JokeAPITimeoutError,
+    JokeAPIConnectionError,
+    JokeAPIHTTPError,
+    JokeAPIParseError,
+)
+
+T = TypeVar('T', Joke, Jokes)
 
 
-
-
-def get_joke()-> Joke:
+class JokeAPIClient:
     """
-    Fetches a random joke from a designated jokes service.
+    Client for interacting with the Joke API service.
 
-    This function utilizes an HTTP GET request to retrieve a random joke in JSON
-    format from the configured jokes service endpoint. It processes the received
-    data and returns it as an instance of the Joke class. If there are any
-    connection issues or the service returns an error, the function manages the
-    exceptions appropriately.
+    This class implements the Template Method pattern, providing a unified
+    interface for all API operations while eliminating code duplication.
+    All HTTP request handling, error management, and response parsing
+    is centralized in the _make_request method.
 
-    :raises TimeoutError: If the request to the jokes service exceeds the allowed
-                          time limit.
-    :raises ConnectionError: If there is a failure to connect to the jokes service.
-    :raises BaseException: If the jokes service responds with a non-success status
-                           code (not 200).
-    :returns: An instance of the Joke class containing the retrieved joke data.
+    :ivar base_url: The base URL for the joke API service
+    :type base_url: str
+    :ivar timeout: Request timeout in seconds
+    :type timeout: float
+    """
+
+    def __init__(self, base_url: str = URL, timeout: float = 10.0):
+        """
+        Initialize the Joke API client.
+
+        :param base_url: Base URL for the API service
+        :param timeout: Request timeout in seconds
+        """
+        self.base_url = base_url
+        self.timeout = timeout
+
+    def _make_request(
+        self,
+        endpoint: str,
+        parser: Callable[[dict[str, Any]], T]
+    ) -> T:
+        """
+        Template method for making HTTP requests to the API.
+
+        This method implements the common logic for all API calls:
+        1. Constructs the full URL
+        2. Makes the HTTP GET request
+        3. Handles connection and timeout errors
+        4. Validates the response status code
+        5. Parses the JSON response
+        6. Returns the parsed result
+
+        :param endpoint: API endpoint path (e.g., "/random_joke")
+        :param parser: Function to parse the JSON response into the desired type
+        :return: Parsed response object
+        :raises JokeAPITimeoutError: If the request times out
+        :raises JokeAPIConnectionError: If connection fails
+        :raises JokeAPIHTTPError: If the API returns a non-200 status
+        :raises JokeAPIParseError: If response parsing fails
+        """
+        url = f"{self.base_url}{endpoint}"
+
+        try:
+            response = httpx.get(url, timeout=self.timeout)
+        except httpx.ReadTimeout as e:
+            log.error(f"Timeout al conectar con {url}: {e}")
+            raise JokeAPITimeoutError()
+        except httpx.ConnectError as e:
+            log.error(f"Error de conexión con {url}: {e}")
+            raise JokeAPIConnectionError()
+        except httpx.HTTPError as e:
+            log.error(f"Error HTTP inesperado en {url}: {e}")
+            raise JokeAPIConnectionError(f"Error HTTP inesperado: {e}")
+
+        if response.status_code != 200:
+            log.error(f"Error {response.status_code} al obtener {url}: {response.text}")
+            raise JokeAPIHTTPError(
+                message="Error al obtener información del servicio de Jokes",
+                status_code=response.status_code,
+                response_text=response.text
+            )
+
+        try:
+            response_data = response.json()
+            return parser(response_data)
+        except (ValueError, TypeError, KeyError) as e:
+            log.error(f"Error al parsear respuesta de {url}: {e}")
+            raise JokeAPIParseError(f"Error al parsear la respuesta: {e}")
+
+    def get_joke(self) -> Joke:
+        """
+        Fetch a random joke from the joke service.
+
+        :return: A random joke
+        :rtype: Joke
+        :raises JokeAPITimeoutError: If the request times out
+        :raises JokeAPIConnectionError: If connection fails
+        :raises JokeAPIHTTPError: If the API returns an error status
+        :raises JokeAPIParseError: If response parsing fails
+        """
+        return self._make_request("/random_joke", lambda data: Joke(**data))
+
+    def get_ten_jokes(self) -> Jokes:
+        """
+        Fetch ten random jokes from the joke service.
+
+        :return: A collection of ten jokes
+        :rtype: Jokes
+        :raises JokeAPITimeoutError: If the request times out
+        :raises JokeAPIConnectionError: If connection fails
+        :raises JokeAPIHTTPError: If the API returns an error status
+        :raises JokeAPIParseError: If response parsing fails
+        """
+        return self._make_request("/random_ten", lambda data: Jokes(jokes=data))
+
+    def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
+        """
+        Fetch a specific joke by its ID.
+
+        :param joke_id: The ID of the joke to fetch (must be between 1 and 451)
+        :type joke_id: int
+        :return: The requested joke
+        :rtype: Joke
+        :raises JokeAPITimeoutError: If the request times out
+        :raises JokeAPIConnectionError: If connection fails
+        :raises JokeAPIHTTPError: If the API returns an error status
+        :raises JokeAPIParseError: If response parsing fails
+        """
+        return self._make_request(f"/jokes/{joke_id}", lambda data: Joke(**data))
+
+    def get_jokes_by_type(self, joke_type: JOKE_TYPES) -> Jokes:
+        """
+        Fetch a random joke of a specific type.
+
+        :param joke_type: The type of joke to fetch (general, knock-knock, programming, or dad)
+        :type joke_type: JOKE_TYPES
+        :return: A joke of the specified type
+        :rtype: Jokes
+        :raises JokeAPITimeoutError: If the request times out
+        :raises JokeAPIConnectionError: If connection fails
+        :raises JokeAPIHTTPError: If the API returns an error status
+        :raises JokeAPIParseError: If response parsing fails
+        """
+        return self._make_request(f"/jokes/{joke_type}/random", lambda data: Jokes(jokes=data))
+
+
+# Singleton instance for convenience
+_client = JokeAPIClient()
+
+
+# Convenience functions that maintain backward compatibility
+def get_joke() -> Joke:
+    """
+    Fetch a random joke from the joke service.
+
+    This is a convenience function that uses the singleton JokeAPIClient instance.
+
+    :return: A random joke
     :rtype: Joke
+    :raises JokeAPITimeoutError: If the request times out
+    :raises JokeAPIConnectionError: If connection fails
+    :raises JokeAPIHTTPError: If the API returns an error status
+    :raises JokeAPIParseError: If response parsing fails
     """
-    url_joke = URL + "/random_joke"
-    try:
-        response = httpx.get(url_joke)
-    except httpx.ReadTimeout:
-        raise TimeoutError(detail="Tiempo de espera excedido")
-    except httpx.ConnectError:
-        raise ConnectionError(detail="Error de conexión con el servicio de Jokes")
-
-    if response.status_code != 200:
-        log.error(response.text)
-        raise BaseException(detail="Error al obtener la información del Jokes")
-
-    resp = response.json()
-
-    joke = Joke(**resp)
-    return joke
+    return _client.get_joke()
 
 
-def get_ten_jokes()-> Jokes:
+def get_ten_jokes() -> Jokes:
     """
-    Fetches a list containing ten jokes from an external service.
+    Fetch ten random jokes from the joke service.
 
-    This function retrieves ten random jokes by making a GET request to an external
-    joke service. It raises appropriate errors in case of issues like timeout or connection
-    failures. If the response is successful, it parses the response JSON into a `Jokes`
-    object and returns it. In case of a non-200 response status code, it logs the error and
-    raises a generic exception.
+    This is a convenience function that uses the singleton JokeAPIClient instance.
 
-    :raises TimeoutError: If the request to the service exceeds the time limit.
-    :raises ConnectionError: If there is an issue connecting to the joke service.
-    :raises BaseException: If the returned status code is not 200, signaling a failure
-        to retrieve the jokes.
-    :return: A `Jokes` object containing ten random jokes.
+    :return: A collection of ten jokes
     :rtype: Jokes
+    :raises JokeAPITimeoutError: If the request times out
+    :raises JokeAPIConnectionError: If connection fails
+    :raises JokeAPIHTTPError: If the API returns an error status
+    :raises JokeAPIParseError: If response parsing fails
     """
-    url_joke = URL + "/random_ten"
-    try:
-        response = httpx.get(url_joke)
-    except httpx.ReadTimeout:
-        raise TimeoutError(detail="Tiempo de espera excedido")
-    except httpx.ConnectError:
-        raise ConnectionError(detail="Error de conexión con el servicio de Jokes")
-
-    if response.status_code != 200:
-        log.error(response.text)
-        raise BaseException(detail="Error al obtener la información del Jokes")
-
-    resp = response.json()
-
-    jokes = Jokes(*resp)
-    return jokes
+    return _client.get_ten_jokes()
 
 
-
-def get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)])-> Joke:
+def get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
     """
-    Fetches a joke from the Jokes service using the specified joke ID.
+    Fetch a specific joke by its ID.
 
-    The function communicates with an external API to fetch a joke resource
-    based on the provided joke ID. It validates the ID input and handles
-    possible errors that may occur during the request process, returning
-    a Joke object if the operation is successful.
+    This is a convenience function that uses the singleton JokeAPIClient instance.
 
-    :param joke_id: The ID of the joke to be fetched. Should be an integer between 1 and 451 inclusive.
+    :param joke_id: The ID of the joke to fetch (must be between 1 and 451)
     :type joke_id: int
-    :return: An instance of the Joke data class containing the joke's details.
+    :return: The requested joke
     :rtype: Joke
-    :raises TimeoutError: If the request to the Jokes service exceeds the allowed response time.
-    :raises ConnectionError: If there is a connection issue when attempting to reach the Jokes service.
-    :raises BaseException: If the API response is not successful or contains an error.
+    :raises JokeAPITimeoutError: If the request times out
+    :raises JokeAPIConnectionError: If connection fails
+    :raises JokeAPIHTTPError: If the API returns an error status
+    :raises JokeAPIParseError: If response parsing fails
     """
-    url_joke = URL + f"/jokes/{joke_id}"
-    try:
-        response = httpx.get(url_joke)
-    except httpx.ReadTimeout:
-        raise TimeoutError(detail="Tiempo de espera excedido")
-    except httpx.ConnectError:
-        raise ConnectionError(detail="Error de conexión con el servicio de Jokes")
-
-    if response.status_code != 200:
-        log.error(response.text)
-        raise BaseException(detail="Error al obtener la información del Jokes")
-
-    resp = response.json()
-
-    joke = Joke(**resp)
-    return joke
+    return _client.get_joke_by_id(joke_id)
 
 
-
-def get_jokes_by_type(joke_type:JOKE_TYPES)-> Jokes:
+def get_jokes_by_type(joke_type: JOKE_TYPES) -> Jokes:
     """
-    Fetches a random joke of the specified type from the joke service.
+    Fetch a random joke of a specific type.
 
-    This function sends a GET request to retrieve a random joke based on the provided
-    joke type. If the joke service is unavailable or there are network issues, appropriate
-    errors are raised. If the service responds with an unsuccessful status code, a general
-    exception is raised.
+    This is a convenience function that uses the singleton JokeAPIClient instance.
 
-    :param joke_type: The type of joke to fetch (e.g., general, programming, etc.)
+    :param joke_type: The type of joke to fetch (general, knock-knock, programming, or dad)
     :type joke_type: JOKE_TYPES
-    :return: A `Jokes` object containing the joke data.
+    :return: A joke of the specified type
     :rtype: Jokes
-    :raises TimeoutError: If the request to the joke service times out.
-    :raises ConnectionError: If unable to connect to the joke service.
-    :raises BaseException: If the joke service responds with any error status.
+    :raises JokeAPITimeoutError: If the request times out
+    :raises JokeAPIConnectionError: If connection fails
+    :raises JokeAPIHTTPError: If the API returns an error status
+    :raises JokeAPIParseError: If response parsing fails
     """
-    url_joke = URL + f"/jokes/{joke_type}/random"
-    try:
-        response = httpx.get(url_joke)
-    except httpx.ReadTimeout:
-        raise TimeoutError(detail="Tiempo de espera excedido")
-    except httpx.ConnectError:
-        raise ConnectionError(detail="Error de conexión con el servicio de Jokes")
-
-    if response.status_code != 200:
-        log.error(response.text)
-        raise BaseException(detail="Error al obtener la información del Jokes")
-
-    resp = response.json()
-
-    jokes = Jokes(*resp)
-    return jokes
+    return _client.get_jokes_by_type(joke_type)

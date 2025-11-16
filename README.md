@@ -1,6 +1,6 @@
 # mcp-joke-server
 
-Simple Model Context Protocol (MCP) tools server that exposes joke-related tools. It fetches jokes from an external HTTP API and provides them to MCP-compatible clients via the FastMCP framework over stdio.
+Simple Model Context Protocol (MCP) tools server that exposes joke-related tools. It fetches jokes from an external HTTP API and provides them to MCP-compatible clients via the FastMCP framework, supporting stdio and an optional HTTP transport.
 
 ## Overview
 
@@ -11,7 +11,7 @@ This repository implements an MCP server using `fastmcp`. The server defines fou
 - `tool_get_joke_by_id(joke_id)` — fetches a joke by numeric ID.
 - `tool_get_joke_by_type(joke_type)` — fetches a joke by category (`general`, `knock-knock`, `programming`, `dad`).
 
-The external API base URL is configured via the `API_BASE_URL` environment variable (see Environment Variables).
+The external API base URL is configured via the `API_BASE_URL` environment variable (see Environment Variables). The server transport is selected with `MCP_PROTOCOL` (`stdio` or `http`).
 
 ## Stack
 
@@ -93,8 +93,9 @@ Required:
 
 Optional (defaults defined in `utils/config.py`):
 
-- `MCP_SERVER_HOST` (default: `0.0.0.0`) — placeholder for potential non-stdio transports
-- `MCP_SERVER_PORT` (default: `8000`) — placeholder for potential non-stdio transports
+- `MCP_PROTOCOL` (default: `http`) — transport selection for the MCP server; accepted values: `stdio` or `http`
+- `MCP_SERVER_HOST` (default: `0.0.0.0`) — host for HTTP transport
+- `MCP_SERVER_PORT` (default: `8000`) — port for HTTP transport
 - `LOG_LEVEL` (default: `INFO`)
 - `LOG_FILE` (default: `logs/mcp_server.log`)
 - `LOG_ROTATION` (default: `10 MB`)
@@ -106,6 +107,7 @@ Example `.env`:
 
 ```
 API_BASE_URL=https://official-joke-api.appspot.com
+MCP_PROTOCOL=http  # use "stdio" to run over stdio
 LOG_LEVEL=INFO
 ```
 
@@ -133,24 +135,37 @@ pip install -e .
 
 ## Run
 
-The server entry point is `main.py` which starts FastMCP via `mcp.run()`.
+The server entry point is `main.py`. Transport is selected by `MCP_PROTOCOL`:
 
-Using uv:
+- `stdio` (default for many MCP clients): runs MCP over stdio
+- `http`: runs MCP over FastMCP's `streamable-http` transport
+
+Using uv (stdio):
 
 ```
-uv run python main.py
+MCP_PROTOCOL=stdio uv run python main.py
+```
+
+Using uv (HTTP):
+
+```
+MCP_PROTOCOL=http uv run python main.py  # uses Settings.MCP_SERVER_HOST/PORT
 ```
 
 Using pip/venv:
 
 ```
-python main.py
+# stdio
+MCP_PROTOCOL=stdio python main.py
+
+# http
+MCP_PROTOCOL=http python main.py
 ```
 
 Notes:
 
-- `fastmcp` typically serves MCP over stdio for MCP-compatible clients. If you intend to connect from an MCP client (e.g., editors or AI assistants that support MCP), configure the client to launch this repository via the run command above.
-- TODO: Add a concrete example and client configuration snippet for a specific MCP client (command, args, and environment).
+- For stdio, configure your MCP client to launch the command above as a subprocess.
+- For HTTP, the server will bind to `MCP_SERVER_HOST:MCP_SERVER_PORT` using FastMCP's `streamable-http` transport.
 
 ## Available Tools (MCP)
 
@@ -161,7 +176,11 @@ Defined in `main.py`:
 - `tool_get_joke_by_id(joke_id: int) -> str` (valid range 1–451)
 - `tool_get_joke_by_type(joke_type: Literal["general", "knock-knock", "programming", "dad"]) -> str`
 
-Implementation delegates to `repositories/*` and `utils/RequestAPIJokes.py`, then formats with `utils/formatters.extract_joke`.
+Implementation uses the Repository Pattern (`repositories/*`). HTTP access and error mapping live in `utils/RequestAPIJokes.py`, and results are formatted with `utils/formatters.extract_joke`.
+
+Repository defaults:
+
+- The factory (`repositories/factory.py`) returns a cached repository by default for better performance. You can swap implementations without changing tool code.
 
 ## Scripts
 
@@ -197,22 +216,26 @@ Coverage HTML is written to `htmlcov/` (configured in `pytest.ini`).
 
 Notes:
 
-- Some tests may rely on network unless you mock HTTP; prefer running offline by mocking endpoints.
-- Ensure `API_BASE_URL` is set in the environment before importing networked modules in ad-hoc scripts.
-- For HTTPX mocking in local development, you can use `respx` (router-style, preferred) or `pytest-httpx`. These are not required dependencies but can be added as dev deps.
+- The suite is designed to run offline; network calls are mocked where needed.
+- Ensure `API_BASE_URL` is set before importing request modules in ad‑hoc scripts (tests patch/marshal config as needed).
+- HTTPX mocking options for local development:
+  - `respx` (preferred; router-style mocking)
+  - `pytest-httpx` (fixture-based)
 
-Quick smoke test (pure function, no deps):
+Quick smoke test (pure function, no network):
 
 ```
 python -c "from utils.formatters import extract_joke; print(extract_joke({'setup':'Why?','punchline':'Because.'}))"
+# Output:
+# Why?
+# Because.
 ```
 
 ## Troubleshooting
 
 - If you see errors fetching jokes, verify `API_BASE_URL` is set correctly and reachable.
-- Logs are written to `logs/mcp_server.log` by default. Adjust via `LOG_FILE` and `LOG_LEVEL` in your environment.
-
-If tests interact with logging, consider redirecting or disabling file handlers during the test run to avoid writing to real files.
+- Logs are written to `logs/mcp_server.log` by default. Adjust via `LOG_FILE`, `LOG_LEVEL`, `LOG_ROTATION`, and `LOG_RETENTION`.
+- For tests that assert logging, prefer in‑memory sinks (e.g., configure `loguru` to stderr) to avoid writing to `logs/`.
 
 ## License
 

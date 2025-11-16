@@ -8,6 +8,10 @@ This document captures build/config, testing, and development practices that are
 - Preferred package manager: `uv` (a `uv.lock` is present). Pip works if you prefer.
 - Runtime model: MCP server over stdio using `fastmcp` (entry point `main.py`).
 
+Convenience tooling present:
+- Makefile with common tasks (install, test, lint, format, type-check, docker). See section "Makefile/CI shortcuts" below.
+- Docker and docker-compose profiles for different transports (HTTP/SSE/STDIO) for experimentation.
+
 ---
 
 ### Build and configuration
@@ -52,6 +56,28 @@ LOG_LEVEL=INFO
 7) Local tooling
 - Lint/format (optional): add `ruff`/`black` in dev extras if desired. Repo does not enforce them yet; mirror current import/style patterns.
 
+8) Makefile/CI shortcuts
+- Common commands (powered by `uv`):
+  - `make install` → `uv sync`
+  - `make install-dev` → sync with dev extras
+  - `make test` → run pytest with coverage (HTML to `htmlcov/`, XML, terminal)
+  - `make test-quick` → quick failing-fast run (`-x`)
+  - `make lint` / `make lint-fix` → Ruff check/fix
+  - `make format` / `make format-check` → Ruff format + Black
+  - `make type-check` → mypy
+  - `make ci-local` → lint + format-check + type-check + tests
+
+9) Docker workflows
+- Build: `make docker-build`
+- Run (HTTP transport demo): `make docker-up`
+- Run with SSE profile: `make docker-up-sse`
+- Run with stdio profile: `make docker-up-stdio`
+- Logs: `make docker-logs`
+- Tear down/clean: `make docker-down` / `make docker-clean`
+- Local non-Docker run variants:
+  - `make run` (defaults) or `uv run python main.py`
+  - Override transport via env: `MCP_PROTOCOL=http|sse|stdio` (Makefile: `run-http`, `run-sse`, `run-stdio`).
+
 ---
 
 ### Testing
@@ -69,12 +95,22 @@ This repository uses `pytest` with coverage reporting (`pytest.ini`). Tests are 
 Notes:
 - The suite mocks network and file logging as needed; it is safe to run offline.
 - Coverage HTML is emitted to `htmlcov/` per `pytest.ini`.
+- Async settings: `pytest-asyncio` is configured in strict mode by default (see `plugins` output). Write async tests using `async def` and proper fixtures; avoid implicit event loop usage.
+
+Pytest configuration highlights (from `pytest.ini`):
+- Discovery: `tests/`, patterns `test_*.py`/`test_*` functions.
+- Markers: `unit`, `integration`, `slow` (strict markers enabled).
+- Coverage targets: `repositories`, `utils`, `strategies`; HTML report to `htmlcov/` and term-missing enabled.
 
 2) HTTP mocking strategy for `httpx`
 - Use one of:
   - `respx` (preferred): powerful router-style mocking for `httpx`
   - `pytest-httpx`: lightweight fixture-based approach
 - Add via uv/pip for local development: `uv add --dev respx` or `uv add --dev pytest-httpx`
+
+Practical tips:
+- Because `utils/constants.URL` is computed at import based on `Settings`, set `API_BASE_URL` in the test environment before importing modules that use it or monkeypatch `utils.constants.URL`.
+- When asserting error handling, ensure body text is logged and `BaseException` is raised for non-200s per project convention.
 
 3) Unit test focus areas
 - `utils/formatters.extract_joke(json)` is pure and easy to test.
@@ -165,6 +201,10 @@ def test_extract_joke_demo():
 Run just this test: `pytest -q tests/test_demo_example.py`
 Delete when done to keep the suite focused.
 
+11) Verifying examples in this document
+- The demonstration test above was created and executed successfully locally using `uv run -m pytest -q tests/test_demo_example.py`.
+- After verification, the temporary test file was removed to keep the repository clean; retain the snippet here for future reference.
+
 ---
 
 ### Development notes and conventions
@@ -185,6 +225,7 @@ Delete when done to keep the suite focused.
 5) MCP tools
 - `main.py` registers tools with FastMCP. Tool implementations call the repository/request layer then use `utils/formatters.extract_joke` to format outputs. When adding tools, keep IO separate from logic to simplify unit testing.
   - The example MCP client under `examples/mcp_client.py` demonstrates how to launch/connect using stdio.
+  - Transports are implemented with a Strategy pattern (see `strategies/`); the environment variable `MCP_PROTOCOL` can select transport behavior at runtime for local runs.
 
 6) Environment-sensitive imports
 - Because `URL` is computed from `Settings.API_BASE_URL` at import time (`utils/constants.py`), tests importing request modules will fail if `API_BASE_URL` is not set. In tests, set `API_BASE_URL` in the environment before import, or monkeypatch `utils.constants.URL`.
@@ -199,7 +240,7 @@ Delete when done to keep the suite focused.
 
 ### Reproducibility note for this document
 
-- Verified on 2025-11-15 (local):
+- Verified on 2025-11-16 (local):
   - `pytest -q` → all 104 tests passed; coverage HTML written to `htmlcov/`.
   - Pure-function smoke run produced:
     - `Why?` then `Because.` on separate lines (see section above).

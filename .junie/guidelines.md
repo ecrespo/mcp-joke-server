@@ -28,6 +28,7 @@ This document captures build/config, testing, and development practices that are
   - `MCP_SERVER_HOST` (default `0.0.0.0`), `MCP_SERVER_PORT` (default `8000`) — kept for potential future non-stdio modes
   - Logging: `LOG_LEVEL` (default `INFO`), `LOG_FILE` (default `logs/mcp_server.log`), `LOG_ROTATION` (default `10 MB`), `LOG_RETENTION` (default `7 days`)
   - Sessions: `SESSION_TIMEOUT` (default `3600`), `SESSION_CLEANUP_INTERVAL` (default `300`)
+  - Test ergonomics: For local test runs you typically do not need to set anything because tests patch/marshal config internally. If you import networked modules in ad‑hoc scripts, ensure `API_BASE_URL` is exported before the import.
 
 3) .env
 - Create `.env` at project root or export variables in your shell. Minimal example:
@@ -40,9 +41,16 @@ LOG_LEVEL=INFO
 - `uv run python main.py` or simply `python main.py`
 - Integrate with an MCP client by configuring it to launch the command above; `fastmcp` speaks MCP over stdio.
 
-5) Notes about `Settings`
+5) Alternate quick sanity check (no network)
+- `python -c "from utils.formatters import extract_joke; print(extract_joke({'setup':'Why?','punchline':'Because.'}))"`
+- This path loads only pure utilities and avoids `Settings`/`URL` import side effects.
+
+6) Notes about `Settings`
 - `utils/config.py` defines class-level attributes in `Settings`. Access via `from utils.config import Settings`.
 - `utils/constants.py` binds `URL = Settings.API_BASE_URL`. Ensure `API_BASE_URL` is set before importing modules that depend on it in process startup/tests.
+
+7) Local tooling
+- Lint/format (optional): add `ruff`/`black` in dev extras if desired. Repo does not enforce them yet; mirror current import/style patterns.
 
 ---
 
@@ -57,6 +65,10 @@ This repository uses `pytest` with coverage reporting (`pytest.ini`). Tests are 
 - With pip/venv:
   - `pip install -e .[dev]`
   - `pytest -q`
+
+Notes:
+- The suite mocks network and file logging as needed; it is safe to run offline.
+- Coverage HTML is emitted to `htmlcov/` per `pytest.ini`.
 
 2) HTTP mocking strategy for `httpx`
 - Use one of:
@@ -76,7 +88,12 @@ This repository uses `pytest` with coverage reporting (`pytest.ini`). Tests are 
   - `httpx.ReadTimeout` → `TimeoutError`; `httpx.ConnectError` → `ConnectionError`
   - Mapping to dataclasses in `utils/model.py` (see types `Joke`, `Jokes`) — ensure schema compatibility
 
-4) Minimal verified example (executed during preparation of this guide)
+4) Running focused subsets
+- Single test file: `pytest -q tests/test_factory.py`
+- Single test: `pytest -q tests/test_factory.py::test_http_repository_is_default`
+- Keyword filter: `pytest -q -k http` (selects tests with names containing "http")
+
+5) Minimal verified example (executed and re-verified)
 - We verified a dependency-free path by running a one-liner that tested the pure formatter. Command and output:
 
 ```
@@ -88,7 +105,7 @@ Because.
 
 To run an ad-hoc script version without pytest, ensure it imports only pure utilities and not networked modules.
 
-5) Example `pytest` tests for HTTP (with `respx`)
+6) Example `pytest` tests for HTTP (with `respx`)
 ```
 import respx
 import httpx
@@ -120,12 +137,33 @@ def test_get_joke_non_200_raises():
 Run with uv:
 - `uv run -m pytest -q`
 
-6) Test structure suggestions
+7) Adding new tests — guidelines
+- Place new tests under `tests/` mirroring package layout (`tests/utils/test_request_api_jokes.py`, etc.).
+- Prefer pure/isolated tests. For request code, use `respx` and assert both request path and error mapping.
+- Avoid importing `main.py` unless you are testing MCP tool registration/IO paths; modules under `repositories/` and `utils/` should contain the testable logic.
+- If a test must interact with logging, prefer patching handlers or using in-memory sinks to avoid writing to `logs/`.
+
+8) Test structure suggestions
 - Place tests under `tests/` mirroring package layout (`tests/utils/test_request_api_jokes.py`, etc.).
 - Avoid importing `main.py` in tests unless you are testing MCP tool registration; prefer isolating logic to utility modules and testing those.
 
-7) Fast smoke runs
+9) Fast smoke runs
 - For quick validation of pure functions, use `uv run python -c "from utils.formatters import extract_joke; print(extract_joke({'setup':'a','punchline':'b'}))"`.
+
+10) Demonstration test (pure utility)
+The following minimal test was used as a demonstration of adding tests without network dependencies:
+
+```
+# tests/test_demo_example.py
+from utils.formatters import extract_joke
+
+def test_extract_joke_demo():
+    data = {"setup": "Knock knock", "punchline": "Who's there?"}
+    assert extract_joke(data) == "Knock knock\nWho's there?"
+```
+
+Run just this test: `pytest -q tests/test_demo_example.py`
+Delete when done to keep the suite focused.
 
 ---
 
@@ -136,6 +174,7 @@ Run with uv:
 
 2) Logging
 - Use `utils/logger.py` helpers and `loguru` loggers. Default file log: `logs/mcp_server.log` (rotated/retained per env). Make sure tests that assert logging do not write to real files; patch or configure handlers for tests.
+  - For unit tests, consider configuring `LOG_FILE` to a temp path or using `loguru.logger.remove()`/`logger.add(sys.stderr)` in a fixture to keep outputs in-memory.
 
 3) Error handling
 - Network layer maps `httpx.ReadTimeout` → `TimeoutError` and `httpx.ConnectError` → `ConnectionError`. Non-200 responses raise `BaseException` after logging body. Mirror this pattern for new request functions for consistency.
@@ -145,6 +184,7 @@ Run with uv:
 
 5) MCP tools
 - `main.py` registers tools with FastMCP. Tool implementations call the repository/request layer then use `utils/formatters.extract_joke` to format outputs. When adding tools, keep IO separate from logic to simplify unit testing.
+  - The example MCP client under `examples/mcp_client.py` demonstrates how to launch/connect using stdio.
 
 6) Environment-sensitive imports
 - Because `URL` is computed from `Settings.API_BASE_URL` at import time (`utils/constants.py`), tests importing request modules will fail if `API_BASE_URL` is not set. In tests, set `API_BASE_URL` in the environment before import, or monkeypatch `utils.constants.URL`.
@@ -159,4 +199,8 @@ Run with uv:
 
 ### Reproducibility note for this document
 
-- During preparation, the full pytest suite was executed successfully (100 tests passed with coverage), and a minimal `extract_joke` smoke check was run. No temporary files were committed; only this `.junie/guidelines.md` file is part of this change.
+- Verified on 2025-11-15 (local):
+  - `pytest -q` → all 104 tests passed; coverage HTML written to `htmlcov/`.
+  - Pure-function smoke run produced:
+    - `Why?` then `Because.` on separate lines (see section above).
+- A temporary demonstration test (`tests/test_demo_example.py`) was created, executed, and removed to validate the add/run/delete workflow. Only this `.junie/guidelines.md` file has been updated.

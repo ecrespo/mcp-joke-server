@@ -19,6 +19,7 @@ The external API base URL is configured via the `API_BASE_URL` environment varia
 - MCP framework: `fastmcp`
 - HTTP client: `httpx`
 - Models/validation: `pydantic`, `pydantic-settings`, and `dataclasses`
+- Env loading: `python-decouple`
 - Logging/UX: `loguru` and `rich`
 - Package manager: `uv` (detected via `uv.lock`) — `pip` works too
 
@@ -50,6 +51,9 @@ The external API base URL is configured via the `API_BASE_URL` environment varia
 │   ├── exceptions.py
 │   ├── formatters.py           # helpers (e.g., extract_joke)
 │   ├── logger.py
+│   ├── logging_config.py       # logging formatter/handlers configuration helpers
+│   ├── logging_interfaces.py   # protocol-style interfaces for logging plumbing
+│   ├── rich_renderers.py       # rich render helpers
 │   └── model.py                # dataclasses for Joke/Jokes
 ├── tests/                      # Pytest suite and config
 │   ├── conftest.py
@@ -58,9 +62,15 @@ The external API base URL is configured via the `API_BASE_URL` environment varia
 │   ├── test_exceptions.py
 │   ├── test_factory.py
 │   ├── test_integration.py
+│   ├── test_main_tools.py
 │   └── test_repositories_base.py
 ├── docs/                       # Documentation index and guides
+│   ├── TESTING_GUIDE.md
+│   ├── REPOSITORY_ARCHITECTURE.md
+│   └── ...
 ├── examples/
+│   ├── mcp_client.py           # demo MCP client
+│   └── repository_pattern_demo.py
 ├── logs/
 │   ├── mcp_server.log          # runtime log (default)
 │   └── errors.log              # optional error logs
@@ -99,6 +109,11 @@ API_BASE_URL=https://official-joke-api.appspot.com
 LOG_LEVEL=INFO
 ```
 
+Notes about configuration:
+
+- `utils/constants.py` binds `URL = Settings.API_BASE_URL` at import time. Ensure the `API_BASE_URL` environment variable is set before importing modules that rely on it (e.g., in tests and ad‑hoc scripts).
+- `Settings` in `utils/config.py` loads values from environment variables and `.env` files using `pydantic-settings` and `python-decouple`.
+
 ## Setup
 
 Using uv (recommended):
@@ -135,7 +150,7 @@ python main.py
 Notes:
 
 - `fastmcp` typically serves MCP over stdio for MCP-compatible clients. If you intend to connect from an MCP client (e.g., editors or AI assistants that support MCP), configure the client to launch this repository via the run command above.
-- TODO: Add a concrete example and client configuration snippet for a specific MCP client.
+- TODO: Add a concrete example and client configuration snippet for a specific MCP client (command, args, and environment).
 
 ## Available Tools (MCP)
 
@@ -154,6 +169,11 @@ No custom `pyproject.toml` scripts are defined. Use the following commands direc
 
 - Install dependencies: `uv sync` or `pip install -e .`
 - Run server: `uv run python main.py` or `python main.py`
+
+Dev extras (tests/coverage):
+
+- With uv: `uv sync --extra dev`
+- With pip/venv: `pip install -e .[dev]`
 
 ## Tests
 
@@ -179,11 +199,20 @@ Notes:
 
 - Some tests may rely on network unless you mock HTTP; prefer running offline by mocking endpoints.
 - Ensure `API_BASE_URL` is set in the environment before importing networked modules in ad-hoc scripts.
+- For HTTPX mocking in local development, you can use `respx` (router-style, preferred) or `pytest-httpx`. These are not required dependencies but can be added as dev deps.
+
+Quick smoke test (pure function, no deps):
+
+```
+python -c "from utils.formatters import extract_joke; print(extract_joke({'setup':'Why?','punchline':'Because.'}))"
+```
 
 ## Troubleshooting
 
 - If you see errors fetching jokes, verify `API_BASE_URL` is set correctly and reachable.
 - Logs are written to `logs/mcp_server.log` by default. Adjust via `LOG_FILE` and `LOG_LEVEL` in your environment.
+
+If tests interact with logging, consider redirecting or disabling file handlers during the test run to avoid writing to real files.
 
 ## License
 
@@ -192,4 +221,4 @@ This project is licensed under the GNU General Public License v3.0 — see the `
 ## Acknowledgements
 
 - [FastMCP](https://pypi.org/project/fastmcp/) for the MCP server framework.
-- The external jokes API (document exact source as a TODO once confirmed).
+- The external jokes API (TODO: document the exact source and attribution once confirmed; typical base is https://official-joke-api.appspot.com).

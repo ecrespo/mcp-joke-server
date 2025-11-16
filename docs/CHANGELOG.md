@@ -19,6 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.2.2] - 2025-11-15
+
+### Added
+- Architecture documentation with detailed diagrams and C4 model. ([b2c4cf2](https://github.com/ecrespo/mcp-joke-server/commit/b2c4cf2))
+- README expanded with SSE transport support, async tool variants, and updated testing/documentation sections. ([9d4b563](https://github.com/ecrespo/mcp-joke-server/commit/9d4b563))
+- Implemented Strategy Pattern for MCP transport protocols. ([66be054](https://github.com/ecrespo/mcp-joke-server/commit/66be054))
+
+### Changed
+- Refactored logging across strategies, repositories, and API clients to support dependency injection. ([ff40c9a](https://github.com/ecrespo/mcp-joke-server/commit/ff40c9a))
+- Refactored MCP server initialization to follow dependency injection principles. ([b831451](https://github.com/ecrespo/mcp-joke-server/commit/b831451))
+
+### Deprecated
+- None.
+
+### Removed
+- None.
+
+### Fixed
+- None.
+
+### Security
+- None.
+
 ## [0.2.1] - 2025-11-15
 
 ### Added

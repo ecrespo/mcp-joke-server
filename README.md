@@ -26,7 +26,7 @@ The external API base URL is configured via the `API_BASE_URL` environment varia
 - MCP framework: `fastmcp`
 - HTTP client: `httpx`
 - Models/validation: `pydantic`, `pydantic-settings` (plus simple dataclasses)
-- Env loading: `python-decouple`
+- Env loading: `pydantic-settings` + `python-dotenv` (para `.env`)
 - Logging/UX: `loguru`, `rich`
 - Package manager: `uv` (detected via `uv.lock`) — `pip` also works
 - Entry point: `main.py` (starts FastMCP and registers tools)
@@ -131,7 +131,7 @@ LOG_LEVEL=INFO
 Notes about configuration:
 
 - `utils/constants.py` binds `URL = Settings.API_BASE_URL` at import time. Ensure the `API_BASE_URL` environment variable is set before importing modules that rely on it (e.g., in tests and ad‑hoc scripts).
-- `Settings` in `utils/config.py` loads values from environment variables and `.env` files using `pydantic-settings` and `python-decouple`.
+- `Settings` en `utils/config.py` carga valores desde variables de entorno y archivos `.env` usando `pydantic-settings` (con soporte de `python-dotenv`).
 
 ## Setup
 

@@ -4,11 +4,16 @@ This directory contains comprehensive documentation for the MCP Joke Server proj
 
 ## 📚 Documentation Files
 
-### Repository Pattern Implementation
+### Design Patterns Implementation
+
+#### Repository Pattern
 - **[REPOSITORY_PATTERN_INDEX.md](REPOSITORY_PATTERN_INDEX.md)** - Start here! Complete index of all repository pattern files
 - **[REPOSITORY_PATTERN_SUMMARY.md](REPOSITORY_PATTERN_SUMMARY.md)** - Detailed documentation of the repository pattern implementation
 - **[REPOSITORY_ARCHITECTURE.md](REPOSITORY_ARCHITECTURE.md)** - Visual diagrams and architecture documentation
 - **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Step-by-step guide for migrating existing code to use repositories
+
+#### Strategy Pattern
+- **[TRANSPORT_STRATEGY_PATTERN.md](TRANSPORT_STRATEGY_PATTERN.md)** - Complete guide to transport strategy pattern for MCP protocols
 
 ### Refactoring Documentation
 - **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - Summary of RequestAPIJokes.py refactoring
@@ -39,11 +44,12 @@ This directory contains comprehensive documentation for the MCP Joke Server proj
 
 ## 📊 Documentation Statistics
 
-- **Total documentation files**: 10
-- **Total lines of documentation**: ~3,000+
-- **Diagrams**: 10+ ASCII diagrams
-- **Code examples**: 60+
-- **Test coverage**: 74% (100 tests, 100% pass rate)
+- **Total documentation files**: 11
+- **Total lines of documentation**: ~3,600+
+- **Diagrams**: 12+ ASCII diagrams
+- **Code examples**: 80+
+- **Test coverage**: 76% (145 tests, 100% pass rate)
+- **Design patterns documented**: 6 (Template Method, Repository, Decorator, Factory, Singleton, Strategy)
 
 ## 🔗 Related Resources
 

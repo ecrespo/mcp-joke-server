@@ -139,13 +139,20 @@ async def tool_aget_joke_by_type(joke_type: JOKE_TYPES) -> str:
 
 
 if __name__ == "__main__":
-    from utils.config import Settings
-    protocol_mcp = Settings.PROTOCOL_MCP
-    if protocol_mcp == "stdio":
-        mcp.run()
-    else:
-        mcp.run(
-            transport="streamable-http",
-            host=Settings.MCP_SERVER_HOST,
-            port=Settings.MCP_SERVER_PORT
-        )
+    from strategies import create_transport_strategy_from_settings
+    from utils.logger import log
+
+    # Create transport strategy from settings using Strategy Pattern
+    strategy = create_transport_strategy_from_settings()
+
+    # Prepare the transport (e.g., validate port availability)
+    strategy.prepare()
+
+    # Get transport-specific kwargs
+    transport_kwargs = strategy.get_transport_kwargs()
+
+    log.info(f"Starting MCP server with {strategy.get_transport_name()} transport")
+    log.debug(f"Transport configuration: {transport_kwargs}")
+
+    # Run the server with the selected strategy
+    mcp.run(**transport_kwargs)

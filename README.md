@@ -44,6 +44,13 @@ The external API base URL is configured via the `API_BASE_URL` environment varia
 │   ├── factory.py
 │   ├── http_repository.py
 │   └── __init__.py
+├── strategies/                 # Strategy pattern for MCP transports (stdio/http/sse)
+│   ├── base.py
+│   ├── factory.py
+│   ├── http_strategy.py
+│   ├── sse_strategy.py
+│   ├── stdio_strategy.py
+│   └── __init__.py
 ├── utils/
 │   ├── RequestAPIJokes.py      # HTTP client for the jokes API
 │   ├── config.py               # Configuration via pydantic-settings
@@ -93,9 +100,9 @@ Required:
 
 Optional (defaults defined in `utils/config.py`):
 
-- `MCP_PROTOCOL` (default: `http`) — transport selection for the MCP server; accepted values: `stdio` or `http`
-- `MCP_SERVER_HOST` (default: `0.0.0.0`) — host for HTTP transport
-- `MCP_SERVER_PORT` (default: `8000`) — port for HTTP transport
+- `MCP_PROTOCOL` (default: `stdio`) — transport selection for the MCP server; accepted values: `stdio`, `http`, or `sse`
+- `MCP_SERVER_HOST` (default: `0.0.0.0`) — host for HTTP/SSE transports
+- `MCP_SERVER_PORT` (default: `8000`) — port for HTTP/SSE transports
 - `LOG_LEVEL` (default: `INFO`)
 - `LOG_FILE` (default: `logs/mcp_server.log`)
 - `LOG_ROTATION` (default: `10 MB`)
@@ -107,7 +114,9 @@ Example `.env`:
 
 ```
 API_BASE_URL=https://official-joke-api.appspot.com
-MCP_PROTOCOL=http  # use "stdio" to run over stdio
+MCP_PROTOCOL=stdio  # Options: "stdio" (default), "http", or "sse"
+MCP_SERVER_HOST=0.0.0.0  # Only used for http/sse transports
+MCP_SERVER_PORT=8000     # Only used for http/sse transports
 LOG_LEVEL=INFO
 ```
 
@@ -230,6 +239,40 @@ python -c "from utils.formatters import extract_joke; print(extract_joke({'setup
 # Why?
 # Because.
 ```
+
+## Design Patterns
+
+This project implements several design patterns for clean, maintainable, and extensible code:
+
+### Repository Pattern (`repositories/`)
+- **Purpose**: Abstract data access layer for jokes
+- **Components**:
+  - `JokeRepository` (abstract base)
+  - `HTTPJokeRepository` (HTTP API implementation)
+  - `CachedJokeRepository` (decorator with TTL caching)
+  - `RepositoryFactory` (creates appropriate repositories)
+- **Documentation**: See `docs/REPOSITORY_PATTERN_SUMMARY.md`
+
+### Strategy Pattern (`strategies/`)
+- **Purpose**: Flexible MCP transport selection (stdio/HTTP/SSE)
+- **Components**:
+  - `TransportStrategy` (abstract base)
+  - `StdioTransportStrategy`, `HttpTransportStrategy`, `SseTransportStrategy`
+  - `TransportStrategyFactory` (creates strategies based on config)
+  - `TransportConfig` (immutable configuration)
+- **Benefits**:
+  - Easy transport switching via `MCP_PROTOCOL` env var
+  - Port availability validation before server starts
+  - Extensible for new transport types
+- **Documentation**: See `docs/TRANSPORT_STRATEGY_PATTERN.md`
+
+### Other Patterns
+- **Template Method** (`utils/RequestAPIJokes.py`): Centralized HTTP request handling
+- **Singleton** (`utils/config.py`): Single Settings instance via metaclass
+- **Decorator** (`repositories/cached_repository.py`): Transparent caching layer
+- **Factory** (`repositories/factory.py`, `strategies/factory.py`): Object creation abstraction
+
+For detailed architecture diagrams and implementation guides, see the `docs/` directory.
 
 ## Troubleshooting
 

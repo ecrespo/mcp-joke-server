@@ -108,8 +108,9 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
     3. Default values
 
     :cvar API_BASE_URL: Base URL for the external joke API service
-    :cvar MCP_SERVER_HOST: Host address for the MCP server
-    :cvar MCP_SERVER_PORT: Port number for the MCP server
+    :cvar MCP_PROTOCOL: MCP transport protocol (stdio, http, or sse)
+    :cvar MCP_SERVER_HOST: Host address for the MCP server (used by http/sse)
+    :cvar MCP_SERVER_PORT: Port number for the MCP server (used by http/sse)
     :cvar LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     :cvar LOG_FILE: Path to the log file
     :cvar LOG_ROTATION: Log file rotation size/time
@@ -133,8 +134,8 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
         json_schema_extra={"example": "https://official-joke-api.appspot.com"}
     )
     MCP_PROTOCOL: str = Field(
-        default="http",
-        description="Protocol for the API URL (STDIO or http)"
+        default="stdio",
+        description="MCP transport protocol: 'stdio' (default), 'http', or 'sse'"
     )
 
     # Server Configuration
@@ -208,9 +209,21 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
     @field_validator("MCP_PROTOCOL")
     @classmethod
     def validate_mcp_protocol(cls, v: str) -> str:
-        if v not in ["http", "stdio"]:
-            raise ValueError("MCP_PROTOCOL must be either 'http' or 'stdio'")
-        return v
+        """
+        Validate the MCP protocol type.
+
+        :param v: Protocol value to validate
+        :return: Validated protocol value (lowercase)
+        :raises ValueError: If protocol is not supported
+        """
+        valid_protocols = {"stdio", "http", "sse"}
+        v_lower = v.lower()
+
+        if v_lower not in valid_protocols:
+            raise ValueError(
+                f"MCP_PROTOCOL must be one of {valid_protocols}, got {v!r}"
+            )
+        return v_lower
 
     @field_validator("LOG_FILE")
     @classmethod

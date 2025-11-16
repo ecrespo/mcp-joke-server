@@ -1,6 +1,6 @@
 # mcp-joke-server
 
-Simple Model Context Protocol (MCP) tools server that exposes joke-related tools. It fetches jokes from an external HTTP API and provides them to MCP-compatible clients via the FastMCP framework, supporting stdio, HTTP, and SSE transports.
+Simple Model Context Protocol (MCP) tools server that exposes joke-related tools. It fetches jokes from an external HTTP API and provides them to MCP-compatible clients via the FastMCP framework. Multiple transports are supported via a Strategy pattern: stdio (default), HTTP, and SSE.
 
 ## Overview
 
@@ -25,10 +25,11 @@ The external API base URL is configured via the `API_BASE_URL` environment varia
 - Language: Python (requires Python 3.13+ per `pyproject.toml`)
 - MCP framework: `fastmcp`
 - HTTP client: `httpx`
-- Models/validation: `pydantic`, `pydantic-settings`, and `dataclasses`
+- Models/validation: `pydantic`, `pydantic-settings` (plus simple dataclasses)
 - Env loading: `python-decouple`
-- Logging/UX: `loguru` and `rich`
-- Package manager: `uv` (detected via `uv.lock`) — `pip` works too
+- Logging/UX: `loguru`, `rich`
+- Package manager: `uv` (detected via `uv.lock`) — `pip` also works
+- Entry point: `main.py` (starts FastMCP and registers tools)
 
 ## Requirements
 
@@ -244,6 +245,88 @@ pip install -e .[dev]
 pytest -q
 ```
 
+## Probar con MCP Inspector (stdio y http)
+
+El Inspector de MCP permite explorar e invocar las herramientas del servidor de forma interactiva. Necesitas Node.js 18+ para usar `npx`.
+
+Instalar/usar (no se instala permanentemente):
+
+```
+npx @modelcontextprotocol/inspector@latest --help
+```
+
+### Opción A: Conexión por stdio (proceso hijo)
+
+Ejecuta el Inspector lanzando este servidor como subproceso. Pasa las variables de entorno requeridas con `--env`.
+
+- Con uv:
+
+```
+npx @modelcontextprotocol/inspector@latest \
+  --command "uv run python main.py" \
+  --env API_BASE_URL=https://official-joke-api.appspot.com \
+  --env MCP_PROTOCOL=stdio
+```
+
+- Con pip/venv:
+
+```
+npx @modelcontextprotocol/inspector@latest \
+  --command "python main.py" \
+  --env API_BASE_URL=https://official-joke-api.appspot.com \
+  --env MCP_PROTOCOL=stdio
+```
+
+Notas:
+
+- `--command` debe ser el comando que inicia el servidor (idéntico a los ejemplos de la sección Run).
+- Puedes añadir más `--env CLAVE=valor` si cambias configuración (p. ej., logging).
+
+### Opción B: Conexión por HTTP (servidor ya levantado)
+
+En este modo el Inspector se conecta a un servidor MCP ya corriendo sobre HTTP (FastMCP "streamable-http"). Usa dos terminales.
+
+1) Terminal 1 — arrancar el servidor HTTP:
+
+```
+API_BASE_URL=https://official-joke-api.appspot.com \
+MCP_PROTOCOL=http \
+MCP_SERVER_HOST=127.0.0.1 \
+MCP_SERVER_PORT=8000 \
+uv run python main.py
+```
+
+Equivalente con pip/venv:
+
+```
+API_BASE_URL=https://official-joke-api.appspot.com \
+MCP_PROTOCOL=http \
+MCP_SERVER_HOST=127.0.0.1 \
+MCP_SERVER_PORT=8000 \
+python main.py
+```
+
+2) Terminal 2 — conectar el Inspector al servidor HTTP:
+
+```
+npx @modelcontextprotocol/inspector@latest --server-url http://127.0.0.1:8000
+```
+
+Si cambiaste `MCP_SERVER_HOST/PORT`, ajusta la URL. El Inspector detectará el transporte HTTP automáticamente.
+
+### Qué probar en el Inspector
+
+Una vez conectado, deberías ver las herramientas registradas (`tool_get_joke`, `tool_get_joke_by_id`, `tool_get_joke_by_type`, etc.).
+
+Sugerencias rápidas:
+
+- Ejecuta `tool_get_consistent_joke` para una verificación sin red.
+- Ejecuta `tool_get_joke` para un chiste aleatorio (requiere `API_BASE_URL`).
+- Ejecuta `tool_get_joke_by_id` con `joke_id=42`.
+- Ejecuta `tool_get_joke_by_type` con `joke_type="general"`.
+
+Si recibes errores de conexión o timeouts, verifica que `API_BASE_URL` esté definido y accesible, y que el transporte (stdio/http) coincida con cómo iniciaste el servidor/Inspector.
+
 Coverage HTML is written to `htmlcov/` (configured in `pytest.ini`).
 
 Notes:
@@ -305,20 +388,38 @@ For detailed architecture diagrams and implementation guides, see the `docs/` di
 
 Further documentation:
 
+- `docs/README.md` (documentation index)
 - `docs/TESTING_GUIDE.md`
 - `docs/TRANSPORT_STRATEGY_PATTERN.md`
 - `docs/REPOSITORY_ARCHITECTURE.md`
-- `docs/REPOSITORY_PATTERN_SUMMARY.md`
+- `docs/C4_ARCHITECTURE.md`
+- `docs/ARCHITECTURE_DIAGRAM.md`
+
+## Documentation and Changelog
+
+- Full documentation lives under `docs/`. Start at `docs/README.md`.
+- Changelog is maintained at `docs/CHANGELOG.md` using Keep a Changelog and SemVer.
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0). See the `LICENSE` file for details.
+
+## Status and Verification
+
+- Verified setup and tests on 2025-11-15 (local environment).
+
+## TODOs
+
+- Sync package version in `pyproject.toml` (currently `0.1.0`) with the latest entry in `docs/CHANGELOG.md` (e.g., `0.2.x`).
+- Document production deployment guidelines for HTTP/SSE transports (reverse proxy, TLS, health checks).  
+- Provide Dockerfile and container run instructions (if containerization is desired).
+- Add badges (CI, coverage) once CI is configured.
 
 ## Troubleshooting
 
 - If you see errors fetching jokes, verify `API_BASE_URL` is set correctly and reachable.
 - Logs are written to `logs/mcp_server.log` by default. Adjust via `LOG_FILE`, `LOG_LEVEL`, `LOG_ROTATION`, and `LOG_RETENTION`.
 - For tests that assert logging, prefer in‑memory sinks (e.g., configure `loguru` to stderr) to avoid writing to `logs/`.
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 — see the `LICENSE` file for details.
 
 ## Acknowledgements
 

@@ -1,6 +1,6 @@
 # mcp-joke-server
 
-Simple Model Context Protocol (MCP) tools server that exposes joke-related tools. It fetches jokes from an external HTTP API and provides them to MCP-compatible clients via the FastMCP framework, supporting stdio and an optional HTTP transport.
+Simple Model Context Protocol (MCP) tools server that exposes joke-related tools. It fetches jokes from an external HTTP API and provides them to MCP-compatible clients via the FastMCP framework, supporting stdio, HTTP, and SSE transports.
 
 ## Overview
 
@@ -9,9 +9,16 @@ This repository implements an MCP server using `fastmcp`. The server defines fou
 - `tool_get_consistent_joke()` — returns the same hardcoded joke every time.
 - `tool_get_joke()` — fetches a random joke from an external jokes API.
 - `tool_get_joke_by_id(joke_id)` — fetches a joke by numeric ID.
+
 - `tool_get_joke_by_type(joke_type)` — fetches a joke by category (`general`, `knock-knock`, `programming`, `dad`).
 
-The external API base URL is configured via the `API_BASE_URL` environment variable (see Environment Variables). The server transport is selected with `MCP_PROTOCOL` (`stdio` or `http`).
+Additionally, there are asynchronous variants of the networked tools useful for async client workflows:
+
+- `tool_aget_joke()`
+- `tool_aget_joke_by_id(joke_id)`
+- `tool_aget_joke_by_type(joke_type)`
+
+The external API base URL is configured via the `API_BASE_URL` environment variable (see Environment Variables). The server transport is selected with `MCP_PROTOCOL` (`stdio`, `http`, or `sse`).
 
 ## Stack
 
@@ -148,6 +155,7 @@ The server entry point is `main.py`. Transport is selected by `MCP_PROTOCOL`:
 
 - `stdio` (default for many MCP clients): runs MCP over stdio
 - `http`: runs MCP over FastMCP's `streamable-http` transport
+- `sse`: runs MCP over Server-Sent Events (unidirectional stream over HTTP)
 
 Using uv (stdio):
 
@@ -161,6 +169,12 @@ Using uv (HTTP):
 MCP_PROTOCOL=http uv run python main.py  # uses Settings.MCP_SERVER_HOST/PORT
 ```
 
+Using uv (SSE):
+
+```
+MCP_PROTOCOL=sse uv run python main.py   # uses Settings.MCP_SERVER_HOST/PORT
+```
+
 Using pip/venv:
 
 ```
@@ -169,12 +183,15 @@ MCP_PROTOCOL=stdio python main.py
 
 # http
 MCP_PROTOCOL=http python main.py
+
+# sse
+MCP_PROTOCOL=sse python main.py
 ```
 
 Notes:
 
 - For stdio, configure your MCP client to launch the command above as a subprocess.
-- For HTTP, the server will bind to `MCP_SERVER_HOST:MCP_SERVER_PORT` using FastMCP's `streamable-http` transport.
+- For HTTP/SSE, the server will bind to `MCP_SERVER_HOST:MCP_SERVER_PORT` using FastMCP's `streamable-http` or SSE transport.
 
 ## Available Tools (MCP)
 
@@ -190,6 +207,12 @@ Implementation uses the Repository Pattern (`repositories/*`). HTTP access and e
 Repository defaults:
 
 - The factory (`repositories/factory.py`) returns a cached repository by default for better performance. You can swap implementations without changing tool code.
+
+Asynchronous variants (useful for async workflows):
+
+- `tool_aget_joke() -> str`
+- `tool_aget_joke_by_id(joke_id: int) -> str`
+- `tool_aget_joke_by_type(joke_type: Literal["general", "knock-knock", "programming", "dad"]) -> str`
 
 ## Scripts
 
@@ -230,6 +253,12 @@ Notes:
 - HTTPX mocking options for local development:
   - `respx` (preferred; router-style mocking)
   - `pytest-httpx` (fixture-based)
+
+Focused subsets:
+
+- Single file: `pytest -q tests/test_factory.py`
+- Single test: `pytest -q tests/test_factory.py::test_http_repository_is_default`
+- Keyword match: `pytest -q -k http`
 
 Quick smoke test (pure function, no network):
 
@@ -274,6 +303,13 @@ This project implements several design patterns for clean, maintainable, and ext
 
 For detailed architecture diagrams and implementation guides, see the `docs/` directory.
 
+Further documentation:
+
+- `docs/TESTING_GUIDE.md`
+- `docs/TRANSPORT_STRATEGY_PATTERN.md`
+- `docs/REPOSITORY_ARCHITECTURE.md`
+- `docs/REPOSITORY_PATTERN_SUMMARY.md`
+
 ## Troubleshooting
 
 - If you see errors fetching jokes, verify `API_BASE_URL` is set correctly and reachable.
@@ -287,4 +323,4 @@ This project is licensed under the GNU General Public License v3.0 — see the `
 ## Acknowledgements
 
 - [FastMCP](https://pypi.org/project/fastmcp/) for the MCP server framework.
-- The external jokes API (TODO: document the exact source and attribution once confirmed; typical base is https://official-joke-api.appspot.com).
+- Jokes API: https://official-joke-api.appspot.com (public example provider).

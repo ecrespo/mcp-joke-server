@@ -38,6 +38,8 @@ from dataclasses import dataclass
 from subprocess import Popen, PIPE
 from typing import Any, Dict, List, Optional, Tuple
 
+from utils.logger import log
+
 
 JSON = Dict[str, Any]
 
@@ -329,21 +331,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     }
     rid, _ = client.request("initialize", init_params)
     init_resp = client.read_until_response(rid)
-    print("Initialize result:\n" + pretty(init_resp.get("result")))
+    log.info("Initialize result:\n" + pretty(init_resp.get("result")))
 
     # 2) tools/list
     rid, _ = client.request("tools/list", {})
     tools_resp = client.read_until_response(rid)
     tools = tools_resp.get("result", {}).get("tools", [])
-    print("\nTools disponibles:")
+    log.info("\nTools disponibles:")
     for t in tools:
-        print(f"- {t.get('name')} : {t.get('description','')}")
+        log.info(f"- {t.get('name')} : {t.get('description','')}")
 
     # 3) tools/call
     try:
         tool_args = json.loads(args.args)
     except json.JSONDecodeError:
-        print("--args no es JSON válido", file=sys.stderr)
+        log.error("--args no es JSON válido")
         return 2
 
     call_params = {
@@ -353,14 +355,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     rid, _ = client.request("tools/call", call_params)
     call_resp = client.read_until_response(rid)
     result = call_resp.get("result", {})
-    print("\nResultado tools/call:\n" + pretty(result))
+    log.info("\nResultado tools/call:\n" + pretty(result))
 
     # Intenta extraer texto si está presente en formato MCP (content blocks)
     content = result.get("content")
     if isinstance(content, list) and content:
         texts = [c.get("text") for c in content if isinstance(c, dict) and c.get("type") == "text"]
         if texts:
-            print("\nTexto devuelto:\n" + "\n".join(texts))
+            log.info("\nTexto devuelto:\n" + "\n".join(texts))
 
     # Cierre ordenado
     try:

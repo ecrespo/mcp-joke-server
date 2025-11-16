@@ -8,18 +8,19 @@ Tests the asynchronous API client implementation including:
 - httpx.AsyncClient interaction
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-import httpx
 
-from utils.RequestAPIJokes import AsyncJokeAPIClient
-from utils.model import Joke, Jokes
+import httpx
+import pytest
+
 from utils.exceptions import (
-    JokeAPITimeoutError,
     JokeAPIConnectionError,
     JokeAPIHTTPError,
     JokeAPIParseError,
+    JokeAPITimeoutError,
 )
+from utils.model import Joke, Jokes
+from utils.RequestAPIJokes import AsyncJokeAPIClient
 
 
 @pytest.fixture
@@ -45,7 +46,7 @@ def sample_joke_data():
         "id": 1,
         "type": "general",
         "setup": "Why did the chicken cross the road?",
-        "punchline": "To get to the other side!"
+        "punchline": "To get to the other side!",
     }
 
 
@@ -53,12 +54,7 @@ def sample_joke_data():
 def sample_ten_jokes_data():
     """Fixture providing sample data for 10 jokes."""
     return [
-        {
-            "id": i,
-            "type": "general",
-            "setup": f"Setup {i}",
-            "punchline": f"Punchline {i}"
-        }
+        {"id": i, "type": "general", "setup": f"Setup {i}", "punchline": f"Punchline {i}"}
         for i in range(1, 11)
     ]
 
@@ -76,9 +72,7 @@ class TestAsyncJokeAPIClientInitialization:
     def test_init_custom_parameters(self, mock_logger):
         """Test client initialization with custom parameters."""
         client = AsyncJokeAPIClient(
-            base_url="https://custom.api.com",
-            timeout=15.0,
-            logger=mock_logger
+            base_url="https://custom.api.com", timeout=15.0, logger=mock_logger
         )
         assert client.base_url == "https://custom.api.com"
         assert client.timeout == 15
@@ -98,7 +92,7 @@ class TestAsyncJokeAPIClientGetJoke:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await async_client.get_joke()
@@ -116,7 +110,7 @@ class TestAsyncJokeAPIClientGetJoke:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ReadTimeout("Timeout")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPITimeoutError):
@@ -128,7 +122,7 @@ class TestAsyncJokeAPIClientGetJoke:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ConnectError("Connection failed")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIConnectionError):
@@ -144,7 +138,7 @@ class TestAsyncJokeAPIClientGetJoke:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -163,7 +157,7 @@ class TestAsyncJokeAPIClientGetJoke:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIParseError):
@@ -175,7 +169,7 @@ class TestAsyncJokeAPIClientGetJoke:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.HTTPError("Generic HTTP error")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIConnectionError):
@@ -195,7 +189,7 @@ class TestAsyncJokeAPIClientGetTenJokes:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await async_client.get_ten_jokes()
@@ -213,7 +207,7 @@ class TestAsyncJokeAPIClientGetTenJokes:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ReadTimeout("Timeout")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPITimeoutError):
@@ -225,7 +219,7 @@ class TestAsyncJokeAPIClientGetTenJokes:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ConnectError("Connection failed")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIConnectionError):
@@ -241,7 +235,7 @@ class TestAsyncJokeAPIClientGetTenJokes:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -259,7 +253,7 @@ class TestAsyncJokeAPIClientGetTenJokes:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIParseError):
@@ -279,7 +273,7 @@ class TestAsyncJokeAPIClientGetJokeById:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await async_client.get_joke_by_id(1)
@@ -300,13 +294,15 @@ class TestAsyncJokeAPIClientGetJokeById:
             mock_async_client = AsyncMock()
             mock_async_client.get.return_value = mock_response
 
-            with patch('httpx.AsyncClient') as mock_client_class:
+            with patch("httpx.AsyncClient") as mock_client_class:
                 mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
                 result = await async_client.get_joke_by_id(joke_id)
 
                 assert result.id == joke_id
-                mock_async_client.get.assert_called_once_with(f"https://api.test.com/jokes/{joke_id}")
+                mock_async_client.get.assert_called_once_with(
+                    f"https://api.test.com/jokes/{joke_id}"
+                )
 
     @pytest.mark.asyncio
     async def test_get_joke_by_id_not_found(self, async_client):
@@ -318,7 +314,7 @@ class TestAsyncJokeAPIClientGetJokeById:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -332,7 +328,7 @@ class TestAsyncJokeAPIClientGetJokeById:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ReadTimeout("Timeout")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPITimeoutError):
@@ -352,14 +348,16 @@ class TestAsyncJokeAPIClientGetJokesByType:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await async_client.get_jokes_by_type("general")
 
             assert isinstance(result, Jokes)
             assert len(result.jokes) == 10
-            mock_async_client.get.assert_called_once_with("https://api.test.com/jokes/general/random")
+            mock_async_client.get.assert_called_once_with(
+                "https://api.test.com/jokes/general/random"
+            )
 
     @pytest.mark.asyncio
     async def test_get_jokes_by_type_programming(self, async_client, sample_ten_jokes_data):
@@ -373,14 +371,16 @@ class TestAsyncJokeAPIClientGetJokesByType:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await async_client.get_jokes_by_type("programming")
 
             assert isinstance(result, Jokes)
             assert all(joke.type == "programming" for joke in result.jokes)
-            mock_async_client.get.assert_called_once_with("https://api.test.com/jokes/programming/random")
+            mock_async_client.get.assert_called_once_with(
+                "https://api.test.com/jokes/programming/random"
+            )
 
     @pytest.mark.asyncio
     async def test_get_jokes_by_type_knock_knock(self, async_client, sample_ten_jokes_data):
@@ -394,13 +394,15 @@ class TestAsyncJokeAPIClientGetJokesByType:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await async_client.get_jokes_by_type("knock-knock")
 
             assert isinstance(result, Jokes)
-            mock_async_client.get.assert_called_once_with("https://api.test.com/jokes/knock-knock/random")
+            mock_async_client.get.assert_called_once_with(
+                "https://api.test.com/jokes/knock-knock/random"
+            )
 
     @pytest.mark.asyncio
     async def test_get_jokes_by_type_timeout(self, async_client):
@@ -408,7 +410,7 @@ class TestAsyncJokeAPIClientGetJokesByType:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ReadTimeout("Timeout")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPITimeoutError):
@@ -420,7 +422,7 @@ class TestAsyncJokeAPIClientGetJokesByType:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ConnectError("Connection failed")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIConnectionError):
@@ -442,7 +444,7 @@ class TestAsyncJokeAPIClientContextManager:
         mock_async_client.__aenter__ = AsyncMock(return_value=mock_async_client)
         mock_async_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch('httpx.AsyncClient', return_value=mock_async_client):
+        with patch("httpx.AsyncClient", return_value=mock_async_client):
             await async_client.get_joke()
 
             # Verify context manager was entered and exited
@@ -461,7 +463,7 @@ class TestAsyncJokeAPIClientContextManager:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             await client.get_joke()
@@ -481,7 +483,7 @@ class TestAsyncJokeAPIClientLogging:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ReadTimeout("Timeout")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPITimeoutError):
@@ -498,7 +500,7 @@ class TestAsyncJokeAPIClientLogging:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = httpx.ConnectError("Connection failed")
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIConnectionError):
@@ -519,7 +521,7 @@ class TestAsyncJokeAPIClientLogging:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIHTTPError):
@@ -540,7 +542,7 @@ class TestAsyncJokeAPIClientLogging:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             with pytest.raises(JokeAPIParseError):

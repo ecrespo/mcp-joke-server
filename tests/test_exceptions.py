@@ -5,12 +5,13 @@ Tests for custom exceptions used by the Joke API client.
 """
 
 import pytest
+
 from utils.exceptions import (
-    JokeAPIError,
-    JokeAPITimeoutError,
     JokeAPIConnectionError,
+    JokeAPIError,
     JokeAPIHTTPError,
     JokeAPIParseError,
+    JokeAPITimeoutError,
 )
 
 
@@ -79,10 +80,7 @@ class TestJokeAPIHTTPError:
 
     def test_create_with_required_params(self):
         """Test creating HTTP error with required parameters."""
-        error = JokeAPIHTTPError(
-            message="HTTP Error",
-            status_code=404
-        )
+        error = JokeAPIHTTPError(message="HTTP Error", status_code=404)
         assert error.message == "HTTP Error"
         assert error.status_code == 404
         assert error.response_text == ""
@@ -90,9 +88,7 @@ class TestJokeAPIHTTPError:
     def test_create_with_response_text(self):
         """Test creating HTTP error with response text."""
         error = JokeAPIHTTPError(
-            message="Not Found",
-            status_code=404,
-            response_text="Resource not found"
+            message="Not Found", status_code=404, response_text="Resource not found"
         )
         assert error.message == "Not Found"
         assert error.status_code == 404
@@ -151,6 +147,7 @@ class TestExceptionHierarchy:
 
     def test_can_catch_with_base_exception(self):
         """Test that all exceptions can be caught with base class."""
+
         def raise_timeout():
             raise JokeAPITimeoutError()
 

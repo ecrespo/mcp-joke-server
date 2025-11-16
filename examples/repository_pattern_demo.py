@@ -7,11 +7,9 @@ and their benefits in terms of abstraction, caching, and testability.
 """
 
 from repositories import (
-    get_joke_repository,
-    HTTPJokeRepository,
-    CachedJokeRepository,
     RepositoryFactory,
     RepositoryType,
+    get_joke_repository,
 )
 from utils.logger import log
 
@@ -104,22 +102,18 @@ def demo_factory_pattern():
 
     # HTTP repository
     http_repo = RepositoryFactory.create_repository(
-        repository_type=RepositoryType.HTTP,
-        timeout=5.0
+        repository_type=RepositoryType.HTTP, timeout=5.0
     )
     log.info(f"HTTP Repository: {http_repo}")
 
     # Cached repository
     cached_repo = RepositoryFactory.create_repository(
-        repository_type=RepositoryType.CACHED,
-        cache_ttl=300
+        repository_type=RepositoryType.CACHED, cache_ttl=300
     )
     log.info(f"Cached Repository: {cached_repo}\n")
 
     # Using string type
-    repo_from_string = RepositoryFactory.create_repository(
-        repository_type="cached"
-    )
+    repo_from_string = RepositoryFactory.create_repository(repository_type="cached")
     log.info(f"Repository from string: {repo_from_string}\n")
 
 

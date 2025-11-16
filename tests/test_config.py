@@ -4,9 +4,8 @@ Unit tests for utils/config.py
 Tests for application configuration using pydantic-settings.
 """
 
-import pytest
-import os
 from pathlib import Path
+
 from utils.config import Settings, SingletonSettingsMeta
 
 
@@ -140,7 +139,7 @@ class TestSettingsValidation:
         # which is challenging with environment-based config
         # For now, just verify the constraint exists
         settings = Settings()
-        assert hasattr(settings, 'MCP_SERVER_PORT')
+        assert hasattr(settings, "MCP_SERVER_PORT")
 
     def test_log_file_creates_directory(self):
         """Test that log file directory is created."""
@@ -164,15 +163,15 @@ class TestSettingsIntegration:
         settings = Settings()
 
         required_fields = [
-            'API_BASE_URL',
-            'MCP_SERVER_HOST',
-            'MCP_SERVER_PORT',
-            'LOG_LEVEL',
-            'LOG_FILE',
-            'LOG_ROTATION',
-            'LOG_RETENTION',
-            'SESSION_TIMEOUT',
-            'SESSION_CLEANUP_INTERVAL',
+            "API_BASE_URL",
+            "MCP_SERVER_HOST",
+            "MCP_SERVER_PORT",
+            "LOG_LEVEL",
+            "LOG_FILE",
+            "LOG_ROTATION",
+            "LOG_RETENTION",
+            "SESSION_TIMEOUT",
+            "SESSION_CLEANUP_INTERVAL",
         ]
 
         for field in required_fields:

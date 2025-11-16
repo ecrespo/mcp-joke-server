@@ -4,7 +4,7 @@ from __future__ import annotations
 from rich.traceback import install as install_rich_traceback
 
 from utils.logging_config import configure_logger
-from utils.logging_interfaces import LoggerProtocol, ConsoleRendererProtocol
+from utils.logging_interfaces import ConsoleRendererProtocol, LoggerProtocol
 from utils.rich_renderers import RichConsoleRenderer
 
 
@@ -69,10 +69,4 @@ renderer: ConsoleRendererProtocol = RichConsoleRenderer()
 log: LoggerProtocol = configure_logger(renderer.write)
 console = renderer.console  # reexportamos la consola rica para compatibilidad
 
-__all__ = [
-    'log',
-    'console',
-    'get_view',
-    'renderer',
-    'LogContext'
-]
+__all__ = ["log", "console", "get_view", "renderer", "LogContext"]

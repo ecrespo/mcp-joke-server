@@ -4,12 +4,13 @@ Unit tests for repositories/cached_repository.py
 Tests for the cached repository decorator pattern implementation.
 """
 
-import pytest
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from repositories.cached_repository import CachedJokeRepository, CacheEntry
+import pytest
+
 from repositories.base import JokeNotFoundError
+from repositories.cached_repository import CachedJokeRepository, CacheEntry
 
 
 class TestCacheEntry:
@@ -51,7 +52,7 @@ class TestCachedJokeRepository:
         joke2 = cached_repo.get_random_joke()
 
         # Should call wrapped repository each time
-        assert mock_repository.calls['get_random_joke'] == 2
+        assert mock_repository.calls["get_random_joke"] == 2
         assert len(cached_repo._cache) == 0  # No cache for random
 
     def test_get_random_jokes_not_cached(self, mock_repository):
@@ -62,7 +63,7 @@ class TestCachedJokeRepository:
         jokes2 = cached_repo.get_random_jokes(10)
 
         # Should call wrapped repository each time
-        assert mock_repository.calls['get_random_jokes'] == 2
+        assert mock_repository.calls["get_random_jokes"] == 2
         assert len(cached_repo._cache) == 0
 
     def test_get_joke_by_id_caches(self, mock_repository):
@@ -71,12 +72,12 @@ class TestCachedJokeRepository:
 
         # First call - cache miss
         joke1 = cached_repo.get_joke_by_id(1)
-        assert mock_repository.calls['get_joke_by_id'] == 1
+        assert mock_repository.calls["get_joke_by_id"] == 1
         assert len(cached_repo._cache) == 1
 
         # Second call - cache hit
         joke2 = cached_repo.get_joke_by_id(1)
-        assert mock_repository.calls['get_joke_by_id'] == 1  # No additional call
+        assert mock_repository.calls["get_joke_by_id"] == 1  # No additional call
         assert joke1 is joke2  # Same object from cache
 
     def test_get_joke_by_id_different_ids(self, mock_repository):
@@ -87,13 +88,13 @@ class TestCachedJokeRepository:
         joke2 = cached_repo.get_joke_by_id(2)
         joke3 = cached_repo.get_joke_by_id(3)
 
-        assert mock_repository.calls['get_joke_by_id'] == 3
+        assert mock_repository.calls["get_joke_by_id"] == 3
         assert len(cached_repo._cache) == 3
 
         # Access cached jokes
         joke1_cached = cached_repo.get_joke_by_id(1)
         assert joke1 is joke1_cached
-        assert mock_repository.calls['get_joke_by_id'] == 3  # No new calls
+        assert mock_repository.calls["get_joke_by_id"] == 3  # No new calls
 
     def test_get_jokes_by_type_caches(self, mock_repository):
         """Test that get_jokes_by_type uses cache."""
@@ -101,12 +102,12 @@ class TestCachedJokeRepository:
 
         # First call - cache miss
         jokes1 = cached_repo.get_jokes_by_type("programming")
-        assert mock_repository.calls['get_jokes_by_type'] == 1
+        assert mock_repository.calls["get_jokes_by_type"] == 1
         assert len(cached_repo._cache) == 1
 
         # Second call - cache hit
         jokes2 = cached_repo.get_jokes_by_type("programming")
-        assert mock_repository.calls['get_jokes_by_type'] == 1
+        assert mock_repository.calls["get_jokes_by_type"] == 1
         assert jokes1 is jokes2
 
     def test_get_jokes_by_type_different_types(self, mock_repository):
@@ -116,7 +117,7 @@ class TestCachedJokeRepository:
         prog_jokes = cached_repo.get_jokes_by_type("programming")
         gen_jokes = cached_repo.get_jokes_by_type("general")
 
-        assert mock_repository.calls['get_jokes_by_type'] == 2
+        assert mock_repository.calls["get_jokes_by_type"] == 2
         assert len(cached_repo._cache) == 2
 
     def test_cache_stats_initial(self, mock_repository):
@@ -124,12 +125,12 @@ class TestCachedJokeRepository:
         cached_repo = CachedJokeRepository(mock_repository)
         stats = cached_repo.get_cache_stats()
 
-        assert stats['hits'] == 0
-        assert stats['misses'] == 0
-        assert stats['evictions'] == 0
-        assert stats['total_requests'] == 0
-        assert stats['hit_rate_percent'] == 0.0
-        assert stats['cache_size'] == 0
+        assert stats["hits"] == 0
+        assert stats["misses"] == 0
+        assert stats["evictions"] == 0
+        assert stats["total_requests"] == 0
+        assert stats["hit_rate_percent"] == 0.0
+        assert stats["cache_size"] == 0
 
     def test_cache_stats_after_operations(self, mock_repository):
         """Test cache statistics after some operations."""
@@ -143,11 +144,11 @@ class TestCachedJokeRepository:
         cached_repo.get_joke_by_id(2)
 
         stats = cached_repo.get_cache_stats()
-        assert stats['hits'] == 1
-        assert stats['misses'] == 2
-        assert stats['total_requests'] == 3
-        assert stats['hit_rate_percent'] == pytest.approx(33.33, rel=0.1)
-        assert stats['cache_size'] == 2
+        assert stats["hits"] == 1
+        assert stats["misses"] == 2
+        assert stats["total_requests"] == 3
+        assert stats["hit_rate_percent"] == pytest.approx(33.33, rel=0.1)
+        assert stats["cache_size"] == 2
 
     def test_clear_cache(self, mock_repository):
         """Test clearing the cache."""
@@ -164,7 +165,7 @@ class TestCachedJokeRepository:
 
         # Verify stats are preserved
         stats = cached_repo.get_cache_stats()
-        assert stats['misses'] == 2  # Stats not reset
+        assert stats["misses"] == 2  # Stats not reset
 
     def test_health_check_delegates(self, mock_repository):
         """Test that health_check delegates to wrapped repository."""
@@ -172,7 +173,7 @@ class TestCachedJokeRepository:
 
         result = cached_repo.health_check()
         assert result is True
-        assert mock_repository.calls['health_check'] == 1
+        assert mock_repository.calls["health_check"] == 1
 
     def test_cache_expiration(self, mock_repository):
         """Test that cache entries expire after TTL."""
@@ -180,17 +181,17 @@ class TestCachedJokeRepository:
 
         # First call - cache miss
         joke1 = cached_repo.get_joke_by_id(1)
-        assert mock_repository.calls['get_joke_by_id'] == 1
+        assert mock_repository.calls["get_joke_by_id"] == 1
 
         # Wait for expiration
         time.sleep(1.1)
 
         # Second call - cache expired, should fetch again
         joke2 = cached_repo.get_joke_by_id(1)
-        assert mock_repository.calls['get_joke_by_id'] == 2
+        assert mock_repository.calls["get_joke_by_id"] == 2
 
         stats = cached_repo.get_cache_stats()
-        assert stats['evictions'] == 1  # One entry evicted
+        assert stats["evictions"] == 1  # One entry evicted
 
     def test_joke_not_found_propagates(self, mock_repository):
         """Test that JokeNotFoundError propagates through cache."""

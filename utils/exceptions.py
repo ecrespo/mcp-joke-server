@@ -35,7 +35,9 @@ class JokeAPITimeoutError(JokeAPIError):
     within the expected time frame.
     """
 
-    def __init__(self, message: str = "Tiempo de espera excedido al conectar con el servicio de Jokes"):
+    def __init__(
+        self, message: str = "Tiempo de espera excedido al conectar con el servicio de Jokes"
+    ):
         super().__init__(message)
 
 

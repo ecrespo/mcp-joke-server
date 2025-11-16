@@ -8,8 +8,9 @@ core application logic.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
 from dataclasses import dataclass
+from typing import Any
+
 from utils.logger import setup_logger
 from utils.logging_interfaces import LoggerProtocol
 
@@ -31,10 +32,11 @@ class TransportConfig:
     :ivar additional_options: Additional transport-specific options
     :type additional_options: Dict[str, Any]
     """
+
     host: str = "0.0.0.0"
     port: int = 8000
     show_banner: bool = True
-    additional_options: Dict[str, Any] | None = None
+    additional_options: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Validate configuration after initialization."""
@@ -43,7 +45,7 @@ class TransportConfig:
 
         # Convert None to empty dict for additional_options
         if self.additional_options is None:
-            object.__setattr__(self, 'additional_options', {})
+            object.__setattr__(self, "additional_options", {})
 
 
 class TransportStrategy(ABC):
@@ -92,7 +94,7 @@ class TransportStrategy(ABC):
         pass
 
     @abstractmethod
-    def get_transport_kwargs(self) -> Dict[str, Any]:
+    def get_transport_kwargs(self) -> dict[str, Any]:
         """
         Get the keyword arguments to pass to mcp.run().
 

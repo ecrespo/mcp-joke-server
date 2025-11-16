@@ -5,44 +5,36 @@ This module tests the Strategy Pattern implementation for MCP transport protocol
 ensuring that all strategies work correctly and the factory creates appropriate instances.
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-import socket
 
 from strategies import (
-    TransportConfig,
-    TransportStrategy,
-    StdioTransportStrategy,
     HttpTransportStrategy,
     SseTransportStrategy,
+    StdioTransportStrategy,
+    TransportConfig,
+    TransportStrategy,
     TransportStrategyFactory,
     TransportType,
     create_transport_strategy_from_settings,
 )
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def basic_config():
     """Basic transport configuration."""
-    return TransportConfig(
-        host="localhost",
-        port=8000,
-        show_banner=False
-    )
+    return TransportConfig(host="localhost", port=8000, show_banner=False)
 
 
 @pytest.fixture
 def http_config():
     """Configuration for HTTP transport."""
-    return TransportConfig(
-        host="0.0.0.0",
-        port=8080,
-        show_banner=True
-    )
+    return TransportConfig(host="0.0.0.0", port=8080, show_banner=True)
 
 
 @pytest.fixture
@@ -67,6 +59,7 @@ def sse_strategy(basic_config):
 # TransportConfig Tests
 # ============================================================================
 
+
 class TestTransportConfig:
     """Tests for TransportConfig data class."""
 
@@ -81,10 +74,7 @@ class TestTransportConfig:
     def test_custom_values(self):
         """Test custom configuration values."""
         config = TransportConfig(
-            host="localhost",
-            port=9000,
-            show_banner=False,
-            additional_options={"timeout": 30}
+            host="localhost", port=9000, show_banner=False, additional_options={"timeout": 30}
         )
         assert config.host == "localhost"
         assert config.port == 9000
@@ -115,6 +105,7 @@ class TestTransportConfig:
 # StdioTransportStrategy Tests
 # ============================================================================
 
+
 class TestStdioTransportStrategy:
     """Tests for STDIO transport strategy."""
 
@@ -132,9 +123,7 @@ class TestStdioTransportStrategy:
 
     def test_transport_kwargs_with_additional_options(self):
         """Test kwargs with additional options."""
-        config = TransportConfig(
-            additional_options={"custom_option": "value"}
-        )
+        config = TransportConfig(additional_options={"custom_option": "value"})
         strategy = StdioTransportStrategy(config)
         kwargs = strategy.get_transport_kwargs()
         assert kwargs["custom_option"] == "value"
@@ -159,6 +148,7 @@ class TestStdioTransportStrategy:
 # HttpTransportStrategy Tests
 # ============================================================================
 
+
 class TestHttpTransportStrategy:
     """Tests for HTTP transport strategy."""
 
@@ -176,31 +166,27 @@ class TestHttpTransportStrategy:
 
     def test_transport_kwargs_with_additional_options(self):
         """Test kwargs with additional options."""
-        config = TransportConfig(
-            host="localhost",
-            port=8000,
-            additional_options={"ssl": True}
-        )
+        config = TransportConfig(host="localhost", port=8000, additional_options={"ssl": True})
         strategy = HttpTransportStrategy(config)
         kwargs = strategy.get_transport_kwargs()
         assert kwargs["ssl"] is True
 
-    @patch.object(HttpTransportStrategy, '_is_port_available', return_value=True)
-    @patch.object(HttpTransportStrategy, '_is_valid_host', return_value=True)
+    @patch.object(HttpTransportStrategy, "_is_port_available", return_value=True)
+    @patch.object(HttpTransportStrategy, "_is_valid_host", return_value=True)
     def test_validate_success(self, mock_host, mock_port, http_strategy):
         """Test successful validation."""
         assert http_strategy.validate() is True
         mock_port.assert_called_once()
         mock_host.assert_called_once()
 
-    @patch.object(HttpTransportStrategy, '_is_port_available', return_value=False)
+    @patch.object(HttpTransportStrategy, "_is_port_available", return_value=False)
     def test_validate_port_unavailable(self, mock_port, http_strategy):
         """Test validation fails when port is unavailable."""
         with pytest.raises(ValueError, match="Port .* is already in use"):
             http_strategy.validate()
 
-    @patch.object(HttpTransportStrategy, '_is_port_available', return_value=True)
-    @patch.object(HttpTransportStrategy, '_is_valid_host', return_value=False)
+    @patch.object(HttpTransportStrategy, "_is_port_available", return_value=True)
+    @patch.object(HttpTransportStrategy, "_is_valid_host", return_value=False)
     def test_validate_invalid_host(self, mock_host, mock_port, http_strategy):
         """Test validation fails for invalid host."""
         with pytest.raises(ValueError, match="Invalid host address"):
@@ -232,6 +218,7 @@ class TestHttpTransportStrategy:
 # SseTransportStrategy Tests
 # ============================================================================
 
+
 class TestSseTransportStrategy:
     """Tests for SSE transport strategy."""
 
@@ -247,8 +234,8 @@ class TestSseTransportStrategy:
         assert kwargs["port"] == 8000
         assert kwargs["show_banner"] is False
 
-    @patch.object(SseTransportStrategy, '_is_port_available', return_value=True)
-    @patch.object(SseTransportStrategy, '_is_valid_host', return_value=True)
+    @patch.object(SseTransportStrategy, "_is_port_available", return_value=True)
+    @patch.object(SseTransportStrategy, "_is_valid_host", return_value=True)
     def test_validate_success(self, mock_host, mock_port, sse_strategy):
         """Test successful validation."""
         assert sse_strategy.validate() is True
@@ -262,6 +249,7 @@ class TestSseTransportStrategy:
 # ============================================================================
 # TransportType Enum Tests
 # ============================================================================
+
 
 class TestTransportType:
     """Tests for TransportType enum."""
@@ -293,6 +281,7 @@ class TestTransportType:
 # ============================================================================
 # TransportStrategyFactory Tests
 # ============================================================================
+
 
 class TestTransportStrategyFactory:
     """Tests for TransportStrategyFactory."""
@@ -337,6 +326,7 @@ class TestTransportStrategyFactory:
 
     def test_register_custom_strategy(self, basic_config):
         """Test registering a custom strategy."""
+
         class CustomStrategy(TransportStrategy):
             def get_transport_name(self):
                 return "custom"
@@ -348,7 +338,7 @@ class TestTransportStrategyFactory:
         # For testing, we'll use one of existing types
         TransportStrategyFactory.register_strategy(
             TransportType.STDIO,  # Temporarily override
-            CustomStrategy
+            CustomStrategy,
         )
 
         strategy = TransportStrategyFactory.create(TransportType.STDIO, basic_config)
@@ -359,19 +349,18 @@ class TestTransportStrategyFactory:
 
     def test_register_invalid_strategy_class(self):
         """Test registering non-TransportStrategy class fails."""
+
         class NotAStrategy:
             pass
 
         with pytest.raises(TypeError, match="must be a subclass of TransportStrategy"):
-            TransportStrategyFactory.register_strategy(
-                TransportType.STDIO,
-                NotAStrategy
-            )
+            TransportStrategyFactory.register_strategy(TransportType.STDIO, NotAStrategy)
 
 
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestTransportStrategyIntegration:
     """Integration tests for transport strategies."""
@@ -380,22 +369,24 @@ class TestTransportStrategyIntegration:
         """Test creating strategy from settings (stdio)."""
         # Use monkeypatch to override Settings attributes
         from utils.config import Settings
-        monkeypatch.setattr(Settings, 'MCP_PROTOCOL', 'stdio', raising=False)
-        monkeypatch.setattr(Settings, 'MCP_SERVER_HOST', 'localhost', raising=False)
-        monkeypatch.setattr(Settings, 'MCP_SERVER_PORT', 8000, raising=False)
+
+        monkeypatch.setattr(Settings, "MCP_PROTOCOL", "stdio", raising=False)
+        monkeypatch.setattr(Settings, "MCP_SERVER_HOST", "localhost", raising=False)
+        monkeypatch.setattr(Settings, "MCP_SERVER_PORT", 8000, raising=False)
 
         strategy = create_transport_strategy_from_settings()
         assert isinstance(strategy, StdioTransportStrategy)
         assert strategy.config.host == "localhost"
         assert strategy.config.port == 8000
 
-    @patch.object(HttpTransportStrategy, 'validate', return_value=True)
+    @patch.object(HttpTransportStrategy, "validate", return_value=True)
     def test_create_from_settings_http(self, mock_validate, monkeypatch):
         """Test creating strategy from settings (http)."""
         from utils.config import Settings
-        monkeypatch.setattr(Settings, 'MCP_PROTOCOL', 'http', raising=False)
-        monkeypatch.setattr(Settings, 'MCP_SERVER_HOST', '0.0.0.0', raising=False)
-        monkeypatch.setattr(Settings, 'MCP_SERVER_PORT', 9000, raising=False)
+
+        monkeypatch.setattr(Settings, "MCP_PROTOCOL", "http", raising=False)
+        monkeypatch.setattr(Settings, "MCP_SERVER_HOST", "0.0.0.0", raising=False)
+        monkeypatch.setattr(Settings, "MCP_SERVER_PORT", 9000, raising=False)
 
         strategy = create_transport_strategy_from_settings()
         assert isinstance(strategy, HttpTransportStrategy)
@@ -403,13 +394,14 @@ class TestTransportStrategyIntegration:
         assert strategy.config.port == 9000
         mock_validate.assert_called_once()
 
-    @patch.object(SseTransportStrategy, 'validate', return_value=True)
+    @patch.object(SseTransportStrategy, "validate", return_value=True)
     def test_create_from_settings_sse(self, mock_validate, monkeypatch):
         """Test creating strategy from settings (sse)."""
         from utils.config import Settings
-        monkeypatch.setattr(Settings, 'MCP_PROTOCOL', 'sse', raising=False)
-        monkeypatch.setattr(Settings, 'MCP_SERVER_HOST', '127.0.0.1', raising=False)
-        monkeypatch.setattr(Settings, 'MCP_SERVER_PORT', 8080, raising=False)
+
+        monkeypatch.setattr(Settings, "MCP_PROTOCOL", "sse", raising=False)
+        monkeypatch.setattr(Settings, "MCP_SERVER_HOST", "127.0.0.1", raising=False)
+        monkeypatch.setattr(Settings, "MCP_SERVER_PORT", 8080, raising=False)
 
         strategy = create_transport_strategy_from_settings()
         assert isinstance(strategy, SseTransportStrategy)
@@ -431,8 +423,8 @@ class TestTransportStrategyIntegration:
         assert kwargs["transport"] == "stdio"
         assert kwargs["show_banner"] is False
 
-    @patch.object(HttpTransportStrategy, '_is_port_available', return_value=True)
-    @patch.object(HttpTransportStrategy, '_is_valid_host', return_value=True)
+    @patch.object(HttpTransportStrategy, "_is_port_available", return_value=True)
+    @patch.object(HttpTransportStrategy, "_is_valid_host", return_value=True)
     def test_end_to_end_http(self, mock_host, mock_port):
         """Test end-to-end flow for HTTP transport."""
         config = TransportConfig(host="localhost", port=8888, show_banner=True)

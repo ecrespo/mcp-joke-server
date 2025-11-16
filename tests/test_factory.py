@@ -5,6 +5,8 @@ Tests for repository factory and singleton pattern.
 """
 
 import pytest
+
+from repositories.cached_repository import CachedJokeRepository
 from repositories.factory import (
     RepositoryFactory,
     RepositoryType,
@@ -12,7 +14,6 @@ from repositories.factory import (
     reset_repository,
 )
 from repositories.http_repository import HTTPJokeRepository
-from repositories.cached_repository import CachedJokeRepository
 
 
 class TestRepositoryType:
@@ -40,8 +41,7 @@ class TestRepositoryFactory:
     def test_create_http_repository_with_custom_url(self):
         """Test creating HTTP repository with custom URL."""
         repo = RepositoryFactory.create_http_repository(
-            base_url="https://example.com",
-            timeout=15.0
+            base_url="https://example.com", timeout=15.0
         )
         assert isinstance(repo, HTTPJokeRepository)
         assert repo._client.base_url == "https://example.com"
@@ -61,8 +61,7 @@ class TestRepositoryFactory:
     def test_create_cached_repository_with_base_repo(self, mock_repository):
         """Test creating cached repository with provided base repository."""
         cached_repo = RepositoryFactory.create_cached_repository(
-            base_repository=mock_repository,
-            cache_ttl=300
+            base_repository=mock_repository, cache_ttl=300
         )
         assert isinstance(cached_repo, CachedJokeRepository)
         assert cached_repo._repository is mock_repository
@@ -97,10 +96,7 @@ class TestRepositoryFactory:
 
     def test_create_repository_with_kwargs(self):
         """Test passing kwargs to factory method."""
-        repo = RepositoryFactory.create_repository(
-            "cached",
-            cache_ttl=900
-        )
+        repo = RepositoryFactory.create_repository("cached", cache_ttl=900)
         assert isinstance(repo, CachedJokeRepository)
         assert repo._default_ttl == 900
 
@@ -138,10 +134,7 @@ class TestGetJokeRepository:
     def test_force_recreate_with_different_type(self):
         """Test forcing recreation with different type."""
         repo1 = get_joke_repository(repository_type="cached")
-        repo2 = get_joke_repository(
-            force_recreate=True,
-            repository_type="http"
-        )
+        repo2 = get_joke_repository(force_recreate=True, repository_type="http")
         assert isinstance(repo1, CachedJokeRepository)
         assert isinstance(repo2, HTTPJokeRepository)
         assert repo1 is not repo2

@@ -8,22 +8,23 @@ Tests the singleton-based async convenience functions:
 - aget_jokes_by_type()
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from utils.RequestAPIJokes import (
-    aget_joke,
-    aget_ten_jokes,
-    aget_joke_by_id,
-    aget_jokes_by_type,
-    _aclient,
-)
-from utils.model import Joke, Jokes
+import pytest
+
 from utils.exceptions import (
-    JokeAPITimeoutError,
     JokeAPIConnectionError,
     JokeAPIHTTPError,
     JokeAPIParseError,
+    JokeAPITimeoutError,
+)
+from utils.model import Joke, Jokes
+from utils.RequestAPIJokes import (
+    _aclient,
+    aget_joke,
+    aget_joke_by_id,
+    aget_jokes_by_type,
+    aget_ten_jokes,
 )
 
 
@@ -34,7 +35,7 @@ def sample_joke():
         id=42,
         type="general",
         setup="Why don't scientists trust atoms?",
-        punchline="Because they make up everything!"
+        punchline="Because they make up everything!",
     )
 
 
@@ -54,7 +55,7 @@ class TestAgetJoke:
     @pytest.mark.asyncio
     async def test_aget_joke_success(self, sample_joke):
         """Test successful joke retrieval via aget_joke()."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             mock_get_joke.return_value = sample_joke
 
             result = await aget_joke()
@@ -67,7 +68,7 @@ class TestAgetJoke:
     @pytest.mark.asyncio
     async def test_aget_joke_timeout_error(self):
         """Test that timeout errors are propagated from singleton client."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             mock_get_joke.side_effect = JokeAPITimeoutError()
 
             with pytest.raises(JokeAPITimeoutError):
@@ -76,7 +77,7 @@ class TestAgetJoke:
     @pytest.mark.asyncio
     async def test_aget_joke_connection_error(self):
         """Test that connection errors are propagated."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             mock_get_joke.side_effect = JokeAPIConnectionError()
 
             with pytest.raises(JokeAPIConnectionError):
@@ -85,11 +86,9 @@ class TestAgetJoke:
     @pytest.mark.asyncio
     async def test_aget_joke_http_error(self):
         """Test that HTTP errors are propagated."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             mock_get_joke.side_effect = JokeAPIHTTPError(
-                message="Server error",
-                status_code=500,
-                response_text="Internal Server Error"
+                message="Server error", status_code=500, response_text="Internal Server Error"
             )
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -100,7 +99,7 @@ class TestAgetJoke:
     @pytest.mark.asyncio
     async def test_aget_joke_parse_error(self):
         """Test that parsing errors are propagated."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             mock_get_joke.side_effect = JokeAPIParseError("Invalid JSON")
 
             with pytest.raises(JokeAPIParseError):
@@ -109,7 +108,7 @@ class TestAgetJoke:
     @pytest.mark.asyncio
     async def test_aget_joke_multiple_calls(self, sample_joke):
         """Test multiple consecutive calls to aget_joke()."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             # Create different jokes for each call
             joke1 = Joke(id=1, type="general", setup="Setup 1", punchline="Punchline 1")
             joke2 = Joke(id=2, type="general", setup="Setup 2", punchline="Punchline 2")
@@ -133,7 +132,7 @@ class TestAgetTenJokes:
     @pytest.mark.asyncio
     async def test_aget_ten_jokes_success(self, sample_jokes):
         """Test successful retrieval of ten jokes."""
-        with patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten:
+        with patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten:
             mock_get_ten.return_value = sample_jokes
 
             result = await aget_ten_jokes()
@@ -146,7 +145,7 @@ class TestAgetTenJokes:
     @pytest.mark.asyncio
     async def test_aget_ten_jokes_timeout_error(self):
         """Test timeout error propagation."""
-        with patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten:
+        with patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten:
             mock_get_ten.side_effect = JokeAPITimeoutError()
 
             with pytest.raises(JokeAPITimeoutError):
@@ -155,7 +154,7 @@ class TestAgetTenJokes:
     @pytest.mark.asyncio
     async def test_aget_ten_jokes_connection_error(self):
         """Test connection error propagation."""
-        with patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten:
+        with patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten:
             mock_get_ten.side_effect = JokeAPIConnectionError()
 
             with pytest.raises(JokeAPIConnectionError):
@@ -164,11 +163,9 @@ class TestAgetTenJokes:
     @pytest.mark.asyncio
     async def test_aget_ten_jokes_http_error(self):
         """Test HTTP error propagation."""
-        with patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten:
+        with patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten:
             mock_get_ten.side_effect = JokeAPIHTTPError(
-                message="Not found",
-                status_code=404,
-                response_text="Resource not found"
+                message="Not found", status_code=404, response_text="Resource not found"
             )
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -179,7 +176,7 @@ class TestAgetTenJokes:
     @pytest.mark.asyncio
     async def test_aget_ten_jokes_parse_error(self):
         """Test parse error propagation."""
-        with patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten:
+        with patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten:
             mock_get_ten.side_effect = JokeAPIParseError("Malformed JSON")
 
             with pytest.raises(JokeAPIParseError):
@@ -188,7 +185,7 @@ class TestAgetTenJokes:
     @pytest.mark.asyncio
     async def test_aget_ten_jokes_correct_count(self, sample_jokes):
         """Test that exactly 10 jokes are returned."""
-        with patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten:
+        with patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten:
             mock_get_ten.return_value = sample_jokes
 
             result = await aget_ten_jokes()
@@ -202,7 +199,7 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_success(self, sample_joke):
         """Test successful joke retrieval by ID."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             mock_get_by_id.return_value = sample_joke
 
             result = await aget_joke_by_id(42)
@@ -214,7 +211,7 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_various_ids(self):
         """Test retrieval with different IDs."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             for joke_id in [1, 100, 200, 451]:
                 joke = Joke(id=joke_id, type="general", setup="Setup", punchline="Punchline")
                 mock_get_by_id.return_value = joke
@@ -227,7 +224,7 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_timeout_error(self):
         """Test timeout error propagation."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             mock_get_by_id.side_effect = JokeAPITimeoutError()
 
             with pytest.raises(JokeAPITimeoutError):
@@ -236,7 +233,7 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_connection_error(self):
         """Test connection error propagation."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             mock_get_by_id.side_effect = JokeAPIConnectionError()
 
             with pytest.raises(JokeAPIConnectionError):
@@ -245,11 +242,9 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_not_found(self):
         """Test 404 error when joke doesn't exist."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             mock_get_by_id.side_effect = JokeAPIHTTPError(
-                message="Joke not found",
-                status_code=404,
-                response_text="Not Found"
+                message="Joke not found", status_code=404, response_text="Not Found"
             )
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -260,7 +255,7 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_parse_error(self):
         """Test parse error propagation."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             mock_get_by_id.side_effect = JokeAPIParseError("Invalid data")
 
             with pytest.raises(JokeAPIParseError):
@@ -269,7 +264,7 @@ class TestAgetJokeById:
     @pytest.mark.asyncio
     async def test_aget_joke_by_id_boundary_values(self):
         """Test boundary ID values (1 and 451)."""
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id:
             # Test ID 1
             joke1 = Joke(id=1, type="general", setup="First", punchline="Joke")
             mock_get_by_id.return_value = joke1
@@ -289,7 +284,9 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_general(self, sample_jokes):
         """Test getting jokes of type 'general'."""
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.return_value = sample_jokes
 
             result = await aget_jokes_by_type("general")
@@ -300,12 +297,16 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_programming(self):
         """Test getting jokes of type 'programming'."""
-        programming_jokes = Jokes(jokes=[
-            Joke(id=i, type="programming", setup=f"Code {i}", punchline=f"Bug {i}")
-            for i in range(1, 6)
-        ])
+        programming_jokes = Jokes(
+            jokes=[
+                Joke(id=i, type="programming", setup=f"Code {i}", punchline=f"Bug {i}")
+                for i in range(1, 6)
+            ]
+        )
 
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.return_value = programming_jokes
 
             result = await aget_jokes_by_type("programming")
@@ -317,12 +318,16 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_knock_knock(self):
         """Test getting jokes of type 'knock-knock'."""
-        knock_knock_jokes = Jokes(jokes=[
-            Joke(id=i, type="knock-knock", setup="Knock knock", punchline=f"Who's there? {i}")
-            for i in range(1, 4)
-        ])
+        knock_knock_jokes = Jokes(
+            jokes=[
+                Joke(id=i, type="knock-knock", setup="Knock knock", punchline=f"Who's there? {i}")
+                for i in range(1, 4)
+            ]
+        )
 
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.return_value = knock_knock_jokes
 
             result = await aget_jokes_by_type("knock-knock")
@@ -334,7 +339,9 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_timeout_error(self):
         """Test timeout error propagation."""
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.side_effect = JokeAPITimeoutError()
 
             with pytest.raises(JokeAPITimeoutError):
@@ -343,7 +350,9 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_connection_error(self):
         """Test connection error propagation."""
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.side_effect = JokeAPIConnectionError()
 
             with pytest.raises(JokeAPIConnectionError):
@@ -352,11 +361,11 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_http_error(self):
         """Test HTTP error propagation."""
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.side_effect = JokeAPIHTTPError(
-                message="Invalid type",
-                status_code=400,
-                response_text="Bad Request"
+                message="Invalid type", status_code=400, response_text="Bad Request"
             )
 
             with pytest.raises(JokeAPIHTTPError) as exc_info:
@@ -367,7 +376,9 @@ class TestAgetJokesByType:
     @pytest.mark.asyncio
     async def test_aget_jokes_by_type_parse_error(self):
         """Test parse error propagation."""
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+        with patch.object(
+            _aclient, "get_jokes_by_type", new_callable=AsyncMock
+        ) as mock_get_by_type:
             mock_get_by_type.side_effect = JokeAPIParseError("Invalid response format")
 
             with pytest.raises(JokeAPIParseError):
@@ -379,11 +390,11 @@ class TestAgetJokesByType:
         valid_types = ["general", "programming", "knock-knock", "dad"]
 
         for joke_type in valid_types:
-            jokes = Jokes(jokes=[
-                Joke(id=1, type=joke_type, setup="Setup", punchline="Punchline")
-            ])
+            jokes = Jokes(jokes=[Joke(id=1, type=joke_type, setup="Setup", punchline="Punchline")])
 
-            with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
+            with patch.object(
+                _aclient, "get_jokes_by_type", new_callable=AsyncMock
+            ) as mock_get_by_type:
                 mock_get_by_type.return_value = jokes
 
                 result = await aget_jokes_by_type(joke_type)
@@ -414,7 +425,7 @@ class TestAsyncConvenienceFunctionsSingletonBehavior:
             for i in range(1, 6)
         ]
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke:
             mock_get_joke.side_effect = jokes
 
             # Make 5 concurrent calls
@@ -428,10 +439,11 @@ class TestAsyncConvenienceFunctionsSingletonBehavior:
         """Test concurrent calls to different convenience functions."""
         import asyncio
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke, \
-             patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten, \
-             patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id:
-
+        with (
+            patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke,
+            patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten,
+            patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id,
+        ):
             mock_get_joke.return_value = sample_joke
             mock_get_ten.return_value = sample_jokes
             mock_get_by_id.return_value = sample_joke

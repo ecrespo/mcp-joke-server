@@ -5,10 +5,11 @@ Tests for base repository interfaces and exceptions.
 """
 
 import pytest
+
 from repositories.base import (
+    JokeNotFoundError,
     JokeRepository,
     JokeRepositoryError,
-    JokeNotFoundError,
 )
 
 

@@ -6,17 +6,20 @@ using the Repository Pattern for data access abstraction.
 """
 
 from typing import Annotated
-import asyncio
 
 from fastmcp import FastMCP
 from pydantic import Field
 
+from repositories import get_joke_repository
 from utils.constants import CONSISTENT_JOKE, JOKE_TYPES
 from utils.formatters import extract_joke
-from repositories import get_joke_repository
 from utils.RequestAPIJokes import (
     aget_joke as api_aget_joke,
+)
+from utils.RequestAPIJokes import (
     aget_joke_by_id as api_aget_joke_by_id,
+)
+from utils.RequestAPIJokes import (
     aget_jokes_by_type as api_aget_jokes_by_type,
 )
 
@@ -28,8 +31,8 @@ mcp = FastMCP("jokes (python)")
 joke_repo = get_joke_repository()
 
 
-
 ### Tools!
+
 
 @mcp.tool
 def tool_get_consistent_joke() -> str:
@@ -106,6 +109,7 @@ def tool_get_joke_by_type(joke_type: JOKE_TYPES) -> str:
 
 # --- Versiones asíncronas de las herramientas ---
 
+
 @mcp.tool
 async def tool_aget_joke() -> str:
     """
@@ -135,7 +139,6 @@ async def tool_aget_joke_by_type(joke_type: JOKE_TYPES) -> str:
     jokes = await api_aget_jokes_by_type(joke_type)
     first = jokes.get_jokes()[0]
     return extract_joke(first.to_dict())
-
 
 
 def run_server(

@@ -6,22 +6,24 @@ implementing the Template Method pattern to reduce code duplication and ensure
 consistent error handling across all API operations.
 """
 
+from collections.abc import Callable
+from typing import Annotated, Any, TypeVar
+
 import httpx
-from typing import Annotated, TypeVar, Callable, Any
 from pydantic import Field
 
-from utils.model import Joke, Jokes
-from utils.logger import setup_logger
-from utils.logging_interfaces import LoggerProtocol
-from utils.constants import URL, JOKE_TYPES, joke_type_value
+from utils.constants import JOKE_TYPES, URL, joke_type_value
 from utils.exceptions import (
-    JokeAPITimeoutError,
     JokeAPIConnectionError,
     JokeAPIHTTPError,
     JokeAPIParseError,
+    JokeAPITimeoutError,
 )
+from utils.logger import setup_logger
+from utils.logging_interfaces import LoggerProtocol
+from utils.model import Joke, Jokes
 
-T = TypeVar('T', Joke, Jokes)
+T = TypeVar("T", Joke, Jokes)
 
 
 class JokeAPIClient:
@@ -39,7 +41,9 @@ class JokeAPIClient:
     :type timeout: float
     """
 
-    def __init__(self, base_url: str = URL, timeout: float = 10.0, *, logger: LoggerProtocol | None = None):
+    def __init__(
+        self, base_url: str = URL, timeout: float = 10.0, *, logger: LoggerProtocol | None = None
+    ):
         """
         Initialize the Joke API client.
 
@@ -51,11 +55,7 @@ class JokeAPIClient:
         # Inyección de logger (fallback seguro para compatibilidad)
         self._log: LoggerProtocol = logger or setup_logger()
 
-    def _make_request(
-        self,
-        endpoint: str,
-        parser: Callable[[dict[str, Any]], T]
-    ) -> T:
+    def _make_request(self, endpoint: str, parser: Callable[[dict[str, Any]], T]) -> T:
         """
         Template method for making HTTP requests to the API.
 
@@ -94,7 +94,7 @@ class JokeAPIClient:
             raise JokeAPIHTTPError(
                 message="Error al obtener información del servicio de Jokes",
                 status_code=response.status_code,
-                response_text=response.text
+                response_text=response.text,
             )
 
         try:
@@ -119,16 +119,14 @@ class AsyncJokeAPIClient:
     :type timeout: float
     """
 
-    def __init__(self, base_url: str = URL, timeout: float = 10.0, *, logger: LoggerProtocol | None = None):
+    def __init__(
+        self, base_url: str = URL, timeout: float = 10.0, *, logger: LoggerProtocol | None = None
+    ):
         self.base_url = base_url
         self.timeout = timeout
         self._log: LoggerProtocol = logger or setup_logger()
 
-    async def _make_request_async(
-        self,
-        endpoint: str,
-        parser: Callable[[dict[str, Any]], T]
-    ) -> T:
+    async def _make_request_async(self, endpoint: str, parser: Callable[[dict[str, Any]], T]) -> T:
         """
         Método plantilla asíncrono para realizar solicitudes HTTP a la API.
 
@@ -160,7 +158,7 @@ class AsyncJokeAPIClient:
             raise JokeAPIHTTPError(
                 message="Error al obtener información del servicio de Jokes",
                 status_code=response.status_code,
-                response_text=response.text
+                response_text=response.text,
             )
 
         try:
@@ -195,8 +193,7 @@ class AsyncJokeAPIClient:
         :raises JokeAPIParseError: If response parsing fails
         """
         return await self._make_request_async(
-            "/random_ten",
-            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+            "/random_ten", lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 
     async def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
@@ -207,42 +204,41 @@ class AsyncJokeAPIClient:
         """Fetch random jokes of a specific type (async)."""
         jt = joke_type_value(joke_type)
         return await self._make_request_async(
-            f"/jokes/{jt}/random",
-            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+            f"/jokes/{jt}/random", lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 
-    
-    
+
 # Métodos públicos síncronos para JokeAPIClient (faltaban en una refactorización previa)
 def _patch_sync_methods_into_client():
-    def _get_joke(self: 'JokeAPIClient') -> Joke:
+    def _get_joke(self: "JokeAPIClient") -> Joke:
         return self._make_request("/random_joke", lambda data: Joke(**data))
 
-    def _get_ten_jokes(self: 'JokeAPIClient') -> Jokes:
+    def _get_ten_jokes(self: "JokeAPIClient") -> Jokes:
         return self._make_request(
-            "/random_ten",
-            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+            "/random_ten", lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 
-    def _get_joke_by_id(self: 'JokeAPIClient', joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
+    def _get_joke_by_id(
+        self: "JokeAPIClient", joke_id: Annotated[int, Field(ge=1, le=451)]
+    ) -> Joke:
         return self._make_request(f"/jokes/{joke_id}", lambda data: Joke(**data))
 
-    def _get_jokes_by_type(self: 'JokeAPIClient', joke_type: JOKE_TYPES) -> Jokes:
+    def _get_jokes_by_type(self: "JokeAPIClient", joke_type: JOKE_TYPES) -> Jokes:
         jt = joke_type_value(joke_type)
         return self._make_request(
-            f"/jokes/{jt}/random",
-            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+            f"/jokes/{jt}/random", lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 
     # Bind methods if missing
     if not hasattr(JokeAPIClient, "get_joke"):
-        setattr(JokeAPIClient, "get_joke", _get_joke)
+        JokeAPIClient.get_joke = _get_joke
     if not hasattr(JokeAPIClient, "get_ten_jokes"):
-        setattr(JokeAPIClient, "get_ten_jokes", _get_ten_jokes)
+        JokeAPIClient.get_ten_jokes = _get_ten_jokes
     if not hasattr(JokeAPIClient, "get_joke_by_id"):
-        setattr(JokeAPIClient, "get_joke_by_id", _get_joke_by_id)
+        JokeAPIClient.get_joke_by_id = _get_joke_by_id
     if not hasattr(JokeAPIClient, "get_jokes_by_type"):
-        setattr(JokeAPIClient, "get_jokes_by_type", _get_jokes_by_type)
+        JokeAPIClient.get_jokes_by_type = _get_jokes_by_type
+
 
 _patch_sync_methods_into_client()
 

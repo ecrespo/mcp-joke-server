@@ -7,11 +7,11 @@ on configuration, ensuring type safety and reducing coupling.
 """
 
 from enum import Enum
-from typing import Type, Dict
-from strategies.base import TransportStrategy, TransportConfig
-from strategies.stdio_strategy import StdioTransportStrategy
+
+from strategies.base import TransportConfig, TransportStrategy
 from strategies.http_strategy import HttpTransportStrategy
 from strategies.sse_strategy import SseTransportStrategy
+from strategies.stdio_strategy import StdioTransportStrategy
 from utils.logger import setup_logger
 from utils.logging_interfaces import LoggerProtocol
 
@@ -27,6 +27,7 @@ class TransportType(str, Enum):
     :cvar HTTP: HTTP (streamable-http) transport
     :cvar SSE: Server-Sent Events transport
     """
+
     STDIO = "stdio"
     HTTP = "http"
     SSE = "sse"
@@ -47,10 +48,7 @@ class TransportType(str, Enum):
             return cls(value_lower)
         except ValueError:
             valid_types = ", ".join([t.value for t in cls])
-            raise ValueError(
-                f"Invalid transport type: {value!r}. "
-                f"Must be one of: {valid_types}"
-            )
+            raise ValueError(f"Invalid transport type: {value!r}. Must be one of: {valid_types}")
 
 
 class TransportStrategyFactory:
@@ -79,7 +77,7 @@ class TransportStrategyFactory:
     """
 
     # Registry mapping transport types to their strategy implementations
-    _strategy_registry: Dict[TransportType, Type[TransportStrategy]] = {
+    _strategy_registry: dict[TransportType, type[TransportStrategy]] = {
         TransportType.STDIO: StdioTransportStrategy,
         TransportType.HTTP: HttpTransportStrategy,
         TransportType.SSE: SseTransportStrategy,
@@ -130,9 +128,7 @@ class TransportStrategyFactory:
 
     @classmethod
     def register_strategy(
-        cls,
-        transport_type: TransportType,
-        strategy_class: Type[TransportStrategy]
+        cls, transport_type: TransportType, strategy_class: type[TransportStrategy]
     ) -> None:
         """
         Register a new transport strategy.
@@ -148,8 +144,7 @@ class TransportStrategyFactory:
         """
         if not issubclass(strategy_class, TransportStrategy):
             raise TypeError(
-                f"Strategy class must be a subclass of TransportStrategy, "
-                f"got {strategy_class}"
+                f"Strategy class must be a subclass of TransportStrategy, got {strategy_class}"
             )
 
         _log = setup_logger()
@@ -208,7 +203,9 @@ def create_transport_strategy(
     return TransportStrategyFactory.create(transport_type, config, logger=logger)
 
 
-def create_transport_strategy_from_settings(*, logger: LoggerProtocol | None = None) -> TransportStrategy:
+def create_transport_strategy_from_settings(
+    *, logger: LoggerProtocol | None = None
+) -> TransportStrategy:
     """
     Create a transport strategy from application settings.
 

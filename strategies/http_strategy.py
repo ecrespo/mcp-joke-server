@@ -6,9 +6,10 @@ for MCP servers. This transport allows the server to be accessed over HTTP,
 enabling remote clients to connect to the MCP server.
 """
 
-from typing import Dict, Any
 import socket
-from strategies.base import TransportStrategy, TransportConfig
+from typing import Any
+
+from strategies.base import TransportStrategy
 
 
 class HttpTransportStrategy(TransportStrategy):
@@ -46,7 +47,7 @@ class HttpTransportStrategy(TransportStrategy):
         """
         return "streamable-http"
 
-    def get_transport_kwargs(self) -> Dict[str, Any]:
+    def get_transport_kwargs(self) -> dict[str, Any]:
         """
         Get keyword arguments for HTTP transport.
 

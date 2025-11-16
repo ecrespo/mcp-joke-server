@@ -5,15 +5,14 @@ This module implements the Factory Pattern to create and configure
 joke repository instances based on configuration settings.
 """
 
-from typing import Literal
 from enum import Enum
 
 from repositories.base import JokeRepository
-from repositories.http_repository import HTTPJokeRepository
 from repositories.cached_repository import CachedJokeRepository
-from utils.RequestAPIJokes import JokeAPIClient
+from repositories.http_repository import HTTPJokeRepository
 from utils.config import Settings
 from utils.logger import log
+from utils.RequestAPIJokes import JokeAPIClient
 
 
 class RepositoryType(str, Enum):
@@ -44,8 +43,7 @@ class RepositoryFactory:
 
     @staticmethod
     def create_http_repository(
-        base_url: str | None = None,
-        timeout: float = 10.0
+        base_url: str | None = None, timeout: float = 10.0
     ) -> HTTPJokeRepository:
         """
         Create an HTTP-based joke repository.
@@ -66,8 +64,7 @@ class RepositoryFactory:
 
     @staticmethod
     def create_cached_repository(
-        base_repository: JokeRepository | None = None,
-        cache_ttl: int = 300
+        base_repository: JokeRepository | None = None, cache_ttl: int = 300
     ) -> CachedJokeRepository:
         """
         Create a cached joke repository.
@@ -85,18 +82,14 @@ class RepositoryFactory:
         if base_repository is None:
             base_repository = RepositoryFactory.create_http_repository()
 
-        cached_repo = CachedJokeRepository(
-            repository=base_repository,
-            default_ttl=cache_ttl
-        )
+        cached_repo = CachedJokeRepository(repository=base_repository, default_ttl=cache_ttl)
 
         log.info(f"Created CachedJokeRepository with TTL: {cache_ttl}s")
         return cached_repo
 
     @staticmethod
     def create_repository(
-        repository_type: RepositoryType | str = RepositoryType.CACHED,
-        **kwargs
+        repository_type: RepositoryType | str = RepositoryType.CACHED, **kwargs
     ) -> JokeRepository:
         """
         Create a repository based on the specified type.
@@ -117,8 +110,7 @@ class RepositoryFactory:
             except ValueError:
                 valid_types = [t.value for t in RepositoryType]
                 raise ValueError(
-                    f"Invalid repository type: {repository_type}. "
-                    f"Valid types are: {valid_types}"
+                    f"Invalid repository type: {repository_type}. Valid types are: {valid_types}"
                 )
 
         log.info(f"Creating repository of type: {repository_type.value}")
@@ -138,7 +130,7 @@ _default_repository: JokeRepository | None = None
 def get_joke_repository(
     force_recreate: bool = False,
     repository_type: RepositoryType | str = RepositoryType.CACHED,
-    **kwargs
+    **kwargs,
 ) -> JokeRepository:
     """
     Get the default joke repository instance (singleton).
@@ -166,8 +158,7 @@ def get_joke_repository(
 
     if _default_repository is None or force_recreate:
         _default_repository = RepositoryFactory.create_repository(
-            repository_type=repository_type,
-            **kwargs
+            repository_type=repository_type, **kwargs
         )
         log.info("Default joke repository initialized")
 

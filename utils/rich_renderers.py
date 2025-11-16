@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from rich.console import Console
 from rich.theme import Theme
 
 from utils.logging_interfaces import ConsoleRendererProtocol
-
 
 DEFAULT_THEME = Theme(
     {

@@ -8,10 +8,11 @@ decoupling business logic from data access implementation details.
 
 from abc import ABC, abstractmethod
 from typing import Annotated
+
 from pydantic import Field
 
-from utils.model import Joke, Jokes
 from utils.constants import JOKE_TYPES
+from utils.model import Joke, Jokes
 
 
 class JokeRepository(ABC):

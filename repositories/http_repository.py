@@ -6,21 +6,21 @@ that fetches jokes from an external HTTP API using the JokeAPIClient.
 """
 
 from typing import Annotated
+
 from pydantic import Field
 
-from repositories.base import JokeRepository, JokeRepositoryError, JokeNotFoundError
-from utils.model import Joke, Jokes
+from repositories.base import JokeNotFoundError, JokeRepository, JokeRepositoryError
 from utils.constants import JOKE_TYPES, joke_type_value
-from utils.RequestAPIJokes import JokeAPIClient
 from utils.exceptions import (
-    JokeAPIError,
-    JokeAPITimeoutError,
     JokeAPIConnectionError,
+    JokeAPIError,
     JokeAPIHTTPError,
-    JokeAPIParseError,
+    JokeAPITimeoutError,
 )
 from utils.logger import setup_logger
 from utils.logging_interfaces import LoggerProtocol
+from utils.model import Joke, Jokes
+from utils.RequestAPIJokes import JokeAPIClient
 
 
 class HTTPJokeRepository(JokeRepository):
@@ -35,7 +35,9 @@ class HTTPJokeRepository(JokeRepository):
     :type _client: JokeAPIClient
     """
 
-    def __init__(self, client: JokeAPIClient | None = None, *, logger: LoggerProtocol | None = None):
+    def __init__(
+        self, client: JokeAPIClient | None = None, *, logger: LoggerProtocol | None = None
+    ):
         """
         Initialize the HTTP joke repository.
 
@@ -62,10 +64,7 @@ class HTTPJokeRepository(JokeRepository):
             return joke
         except JokeAPIError as e:
             self._log.error(f"Failed to fetch random joke: {e}")
-            raise JokeRepositoryError(
-                "Failed to retrieve random joke from repository",
-                cause=e
-            )
+            raise JokeRepositoryError("Failed to retrieve random joke from repository", cause=e)
 
     def get_random_jokes(self, count: int = 10) -> Jokes:
         """
@@ -88,8 +87,7 @@ class HTTPJokeRepository(JokeRepository):
         except JokeAPIError as e:
             self._log.error(f"Failed to fetch random jokes: {e}")
             raise JokeRepositoryError(
-                f"Failed to retrieve {count} random jokes from repository",
-                cause=e
+                f"Failed to retrieve {count} random jokes from repository", cause=e
             )
 
     def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
@@ -114,16 +112,10 @@ class HTTPJokeRepository(JokeRepository):
                 self._log.warning(f"Joke with ID {joke_id} not found")
                 raise JokeNotFoundError(joke_id)
             self._log.error(f"HTTP error fetching joke {joke_id}: {e}")
-            raise JokeRepositoryError(
-                f"Failed to retrieve joke with ID {joke_id}",
-                cause=e
-            )
+            raise JokeRepositoryError(f"Failed to retrieve joke with ID {joke_id}", cause=e)
         except JokeAPIError as e:
             self._log.error(f"Failed to fetch joke {joke_id}: {e}")
-            raise JokeRepositoryError(
-                f"Failed to retrieve joke with ID {joke_id}",
-                cause=e
-            )
+            raise JokeRepositoryError(f"Failed to retrieve joke with ID {joke_id}", cause=e)
 
     def get_jokes_by_type(self, joke_type: JOKE_TYPES) -> Jokes:
         """
@@ -145,8 +137,7 @@ class HTTPJokeRepository(JokeRepository):
             jt = joke_type_value(joke_type)
             self._log.error(f"Failed to fetch jokes of type {jt}: {e}")
             raise JokeRepositoryError(
-                f"Failed to retrieve jokes of type '{jt}' from repository",
-                cause=e
+                f"Failed to retrieve jokes of type '{jt}' from repository", cause=e
             )
 
     def health_check(self) -> bool:

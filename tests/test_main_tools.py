@@ -8,13 +8,13 @@ para evitar IO de red y tener datos deterministas.
 """
 
 import os
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 
 
 @pytest.fixture(autouse=True)
-def _ensure_api_base_url() -> Generator[None, None, None]:
+def _ensure_api_base_url() -> Generator[None]:
     """
     Asegura que `API_BASE_URL` esté presente antes de importar módulos que lo
     requieren en tiempo de importación (utils.constants -> Settings).

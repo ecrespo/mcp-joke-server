@@ -8,37 +8,42 @@ End-to-end tests for async functionality:
 - Performance characteristics
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from main import tool_aget_joke, tool_aget_joke_by_id, tool_aget_joke_by_type
+from utils.exceptions import JokeAPIHTTPError, JokeAPITimeoutError
+from utils.model import Joke, Jokes
 from utils.RequestAPIJokes import (
-    AsyncJokeAPIClient,
     aget_joke,
-    aget_ten_jokes,
     aget_joke_by_id,
     aget_jokes_by_type,
+    aget_ten_jokes,
 )
-from utils.model import Joke, Jokes
-from utils.exceptions import JokeAPITimeoutError, JokeAPIHTTPError
-
 
 # Access the underlying functions from the decorated tools
-_tool_aget_joke_func = tool_aget_joke.fn if hasattr(tool_aget_joke, 'fn') else tool_aget_joke
-_tool_aget_joke_by_id_func = tool_aget_joke_by_id.fn if hasattr(tool_aget_joke_by_id, 'fn') else tool_aget_joke_by_id
-_tool_aget_joke_by_type_func = tool_aget_joke_by_type.fn if hasattr(tool_aget_joke_by_type, 'fn') else tool_aget_joke_by_type
+_tool_aget_joke_func = tool_aget_joke.fn if hasattr(tool_aget_joke, "fn") else tool_aget_joke
+_tool_aget_joke_by_id_func = (
+    tool_aget_joke_by_id.fn if hasattr(tool_aget_joke_by_id, "fn") else tool_aget_joke_by_id
+)
+_tool_aget_joke_by_type_func = (
+    tool_aget_joke_by_type.fn if hasattr(tool_aget_joke_by_type, "fn") else tool_aget_joke_by_type
+)
 
 
 @pytest.fixture
 def mock_httpx_response():
     """Factory for creating mock httpx responses."""
+
     def _create_response(data, status_code=200):
         response = MagicMock()
         response.status_code = status_code
         response.json.return_value = data
         response.text = str(data)
         return response
+
     return _create_response
 
 
@@ -49,7 +54,7 @@ def sample_joke_data():
         "id": 123,
         "type": "programming",
         "setup": "Why do programmers prefer dark mode?",
-        "punchline": "Because light attracts bugs!"
+        "punchline": "Because light attracts bugs!",
     }
 
 
@@ -61,7 +66,7 @@ def sample_jokes_data():
             "id": i,
             "type": "general",
             "setup": f"Why did the {i} cross the road?",
-            "punchline": f"To get to joke {i}!"
+            "punchline": f"To get to joke {i}!",
         }
         for i in range(1, 11)
     ]
@@ -77,7 +82,7 @@ class TestAsyncEndToEndFlow:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Call the tool which internally uses the client
@@ -97,7 +102,7 @@ class TestAsyncEndToEndFlow:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await _tool_aget_joke_by_id_func(42)
@@ -119,7 +124,7 @@ class TestAsyncEndToEndFlow:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             result = await _tool_aget_joke_by_type_func("programming")
@@ -142,7 +147,7 @@ class TestAsyncConvenienceFunctionsIntegration:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             joke = await aget_joke()
@@ -160,7 +165,7 @@ class TestAsyncConvenienceFunctionsIntegration:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             jokes = await aget_ten_jokes()
@@ -179,7 +184,7 @@ class TestAsyncConvenienceFunctionsIntegration:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             joke = await aget_joke_by_id(250)
@@ -191,7 +196,9 @@ class TestAsyncConvenienceFunctionsIntegration:
             assert "/jokes/250" in call_args
 
     @pytest.mark.asyncio
-    async def test_aget_jokes_by_type_full_integration(self, mock_httpx_response, sample_jokes_data):
+    async def test_aget_jokes_by_type_full_integration(
+        self, mock_httpx_response, sample_jokes_data
+    ):
         """Test aget_jokes_by_type full integration."""
         for joke in sample_jokes_data:
             joke["type"] = "knock-knock"
@@ -200,7 +207,7 @@ class TestAsyncConvenienceFunctionsIntegration:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             jokes = await aget_jokes_by_type("knock-knock")
@@ -221,7 +228,7 @@ class TestAsyncMultiLayerIntegration:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = JokeAPITimeoutError()
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Error should propagate from client -> convenience function -> tool
@@ -235,7 +242,7 @@ class TestAsyncMultiLayerIntegration:
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Test data flow: dict -> Joke -> formatted string
@@ -255,12 +262,7 @@ class TestAsyncRealWorldScenarios:
     @pytest.mark.asyncio
     async def test_sequential_requests_different_endpoints(self, mock_httpx_response):
         """Test sequential requests to different endpoints."""
-        joke_data = {
-            "id": 1,
-            "type": "general",
-            "setup": "Setup",
-            "punchline": "Punchline"
-        }
+        joke_data = {"id": 1, "type": "general", "setup": "Setup", "punchline": "Punchline"}
         jokes_data = [joke_data.copy() for _ in range(10)]
 
         mock_responses = [
@@ -272,7 +274,7 @@ class TestAsyncRealWorldScenarios:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = mock_responses
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Sequential calls to different endpoints
@@ -298,7 +300,7 @@ class TestAsyncRealWorldScenarios:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = mock_responses
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Make 5 concurrent requests
@@ -323,7 +325,7 @@ class TestAsyncRealWorldScenarios:
             success_response,
         ]
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # First should succeed
@@ -347,7 +349,7 @@ class TestAsyncRealWorldScenarios:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = [error_response, success_response]
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # First attempt fails
@@ -364,7 +366,12 @@ class TestAsyncRealWorldScenarios:
         types = ["general", "programming", "knock-knock", "dad"]
         jokes_data_by_type = {
             joke_type: [
-                {"id": i, "type": joke_type, "setup": f"{joke_type} setup {i}", "punchline": f"punchline {i}"}
+                {
+                    "id": i,
+                    "type": joke_type,
+                    "setup": f"{joke_type} setup {i}",
+                    "punchline": f"punchline {i}",
+                }
                 for i in range(1, 4)
             ]
             for joke_type in types
@@ -374,7 +381,7 @@ class TestAsyncRealWorldScenarios:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = mock_responses
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Fetch all types
@@ -404,7 +411,7 @@ class TestAsyncPerformanceCharacteristics:
         mock_async_client = AsyncMock()
         mock_async_client.get = slow_get
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Concurrent execution
@@ -432,7 +439,7 @@ class TestAsyncPerformanceCharacteristics:
         mock_async_client = AsyncMock()
         mock_async_client.get.side_effect = mock_responses
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             results = await asyncio.gather(*[aget_joke() for _ in range(num_requests)])
@@ -445,7 +452,9 @@ class TestAsyncClientLifecycle:
     """Tests for async client lifecycle management."""
 
     @pytest.mark.asyncio
-    async def test_client_context_manager_properly_closes(self, mock_httpx_response, sample_joke_data):
+    async def test_client_context_manager_properly_closes(
+        self, mock_httpx_response, sample_joke_data
+    ):
         """Test that AsyncClient context manager properly closes."""
         mock_response = mock_httpx_response(sample_joke_data)
         mock_async_client = AsyncMock()
@@ -453,7 +462,7 @@ class TestAsyncClientLifecycle:
         mock_async_client.__aenter__ = AsyncMock(return_value=mock_async_client)
         mock_async_client.__aexit__ = AsyncMock()
 
-        with patch('httpx.AsyncClient', return_value=mock_async_client):
+        with patch("httpx.AsyncClient", return_value=mock_async_client):
             await aget_joke()
 
             # Verify context manager was entered and exited
@@ -461,13 +470,15 @@ class TestAsyncClientLifecycle:
             mock_async_client.__aexit__.assert_called()
 
     @pytest.mark.asyncio
-    async def test_multiple_requests_create_separate_clients(self, mock_httpx_response, sample_joke_data):
+    async def test_multiple_requests_create_separate_clients(
+        self, mock_httpx_response, sample_joke_data
+    ):
         """Test that each request creates its own client instance."""
         mock_response = mock_httpx_response(sample_joke_data)
         mock_async_client = AsyncMock()
         mock_async_client.get.return_value = mock_response
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
             # Make multiple requests

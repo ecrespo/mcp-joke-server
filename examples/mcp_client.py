@@ -14,7 +14,7 @@ Uso rápido (en dos terminales):
     python examples/mcp_client.py
 
   Opciones:
-    - Para forzar el comando del servidor: 
+    - Para forzar el comando del servidor:
         python examples/mcp_client.py --server-cmd "uv run python main.py"
     - Para llamar a una herramienta específica (por nombre):
         python examples/mcp_client.py --tool tool_get_consistent_joke
@@ -30,18 +30,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shlex
 import sys
 import time
 from dataclasses import dataclass
-from subprocess import Popen, PIPE
-from typing import Any, Dict, List, Optional, Tuple
+from subprocess import PIPE, Popen
+from typing import Any
 
 from utils.logger import log
 
-
-JSON = Dict[str, Any]
+JSON = dict[str, Any]
 
 
 def _write_message(fp, obj: JSON) -> None:
@@ -66,7 +64,7 @@ def _write_message(fp, obj: JSON) -> None:
     fp.flush()
 
 
-def _read_headers(fp) -> Optional[int]:
+def _read_headers(fp) -> int | None:
     """
     Reads HTTP headers from a provided file-like object until a double newline
     sequence (\r\n\r\n) or its equivalent (\n) is encountered. If a Content-Length
@@ -80,7 +78,7 @@ def _read_headers(fp) -> Optional[int]:
              if the Content-Length header is not found or headers cannot be read.
     :rtype: Optional[int]
     """
-    content_length: Optional[int] = None
+    content_length: int | None = None
     # Leer líneas hasta \r\n\r\n
     # Algunas implementaciones pueden emitir saltos de línea estilo "\n".
     # Usamos un bucle que corta al encontrar una línea vacía.
@@ -105,7 +103,7 @@ def _read_headers(fp) -> Optional[int]:
     return content_length
 
 
-def _read_message(fp) -> Optional[JSON]:
+def _read_message(fp) -> JSON | None:
     """
     Reads a JSON message from a file-like object.
 
@@ -158,10 +156,11 @@ class RpcClient:
     :ivar next_id: The sequential identifier used for each JSON-RPC request.
     :type next_id: int
     """
+
     proc: Popen
     next_id: int = 1
 
-    def request(self, method: str, params: Optional[JSON] = None) -> Tuple[int, JSON]:
+    def request(self, method: str, params: JSON | None = None) -> tuple[int, JSON]:
         """
         Sends a JSON-RPC 2.0 request message to the process' stdin.
 
@@ -227,7 +226,7 @@ class RpcClient:
                 return obj
 
 
-def _default_server_cmd() -> List[str]:
+def _default_server_cmd() -> list[str]:
     """
     Generates the default command for running the server. The implementation checks
     if `uv` is available in the system's PATH and uses it to construct the command.
@@ -285,7 +284,7 @@ def pretty(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=2)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """
     Runs the MCP client for fastmcp over standard IO.
 
@@ -339,7 +338,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     tools = tools_resp.get("result", {}).get("tools", [])
     log.info("\nTools disponibles:")
     for t in tools:
-        log.info(f"- {t.get('name')} : {t.get('description','')}")
+        log.info(f"- {t.get('name')} : {t.get('description', '')}")
 
     # 3) tools/call
     try:

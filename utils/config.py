@@ -7,11 +7,12 @@ It uses the Singleton pattern to ensure a single configuration instance
 throughout the application lifecycle.
 """
 
-from typing import Literal, ClassVar
 from pathlib import Path
-from pydantic import Field, field_validator, HttpUrl
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import ClassVar, Literal
+
+from pydantic import Field, field_validator
 from pydantic._internal._model_construction import ModelMetaclass
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class SingletonSettingsMeta(ModelMetaclass):
@@ -79,9 +80,7 @@ class SingletonSettingsMeta(ModelMetaclass):
         except Exception:
             pass
 
-        raise AttributeError(
-            f"type object '{cls.__name__}' has no attribute '{name}'"
-        )
+        raise AttributeError(f"type object '{cls.__name__}' has no attribute '{name}'")
 
     @classmethod
     def reset(mcs):
@@ -131,60 +130,40 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
     API_BASE_URL: str = Field(
         ...,
         description="Base URL for the external joke API service",
-        json_schema_extra={"example": "https://official-joke-api.appspot.com"}
+        json_schema_extra={"example": "https://official-joke-api.appspot.com"},
     )
     MCP_PROTOCOL: str = Field(
-        default="stdio",
-        description="MCP transport protocol: 'stdio' (default), 'http', or 'sse'"
+        default="stdio", description="MCP transport protocol: 'stdio' (default), 'http', or 'sse'"
     )
 
     # Server Configuration
-    MCP_SERVER_HOST: str = Field(
-        default="0.0.0.0",
-        description="Host address for the MCP server"
-    )
+    MCP_SERVER_HOST: str = Field(default="0.0.0.0", description="Host address for the MCP server")
 
     MCP_SERVER_PORT: int = Field(
-        default=8000,
-        ge=1,
-        le=65535,
-        description="Port number for the MCP server (1-65535)"
+        default=8000, ge=1, le=65535, description="Port number for the MCP server (1-65535)"
     )
 
     # Logging Configuration
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-        default="INFO",
-        description="Logging level"
+        default="INFO", description="Logging level"
     )
 
-    LOG_FILE: str = Field(
-        default="logs/mcp_server.log",
-        description="Path to the log file"
-    )
+    LOG_FILE: str = Field(default="logs/mcp_server.log", description="Path to the log file")
 
-    LOG_ROTATION: str = Field(
-        default="10 MB",
-        description="Log file rotation size or time period"
-    )
+    LOG_ROTATION: str = Field(default="10 MB", description="Log file rotation size or time period")
 
-    LOG_RETENTION: str = Field(
-        default="7 days",
-        description="Log file retention period"
-    )
+    LOG_RETENTION: str = Field(default="7 days", description="Log file retention period")
 
     # Session Configuration
     SESSION_TIMEOUT: int = Field(
-        default=3600,
-        ge=60,
-        le=86400,
-        description="Session timeout in seconds (60s - 24h)"
+        default=3600, ge=60, le=86400, description="Session timeout in seconds (60s - 24h)"
     )
 
     SESSION_CLEANUP_INTERVAL: int = Field(
         default=300,
         ge=60,
         le=3600,
-        description="Interval for cleaning up expired sessions in seconds (60s - 1h)"
+        description="Interval for cleaning up expired sessions in seconds (60s - 1h)",
     )
 
     @field_validator("API_BASE_URL")
@@ -220,9 +199,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
         v_lower = v.lower()
 
         if v_lower not in valid_protocols:
-            raise ValueError(
-                f"MCP_PROTOCOL must be one of {valid_protocols}, got {v!r}"
-            )
+            raise ValueError(f"MCP_PROTOCOL must be one of {valid_protocols}, got {v!r}")
         return v_lower
 
     @field_validator("LOG_FILE")
@@ -258,9 +235,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
 
         parts = v.strip().split()
         if len(parts) != 2:
-            raise ValueError(
-                f"LOG_ROTATION must be in format '<number> <unit>', got: {v}"
-            )
+            raise ValueError(f"LOG_ROTATION must be in format '<number> <unit>', got: {v}")
 
         try:
             size_value = float(parts[0])
@@ -294,9 +269,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
 
         parts = v.strip().split()
         if len(parts) != 2:
-            raise ValueError(
-                f"LOG_RETENTION must be in format '<number> <unit>', got: {v}"
-            )
+            raise ValueError(f"LOG_RETENTION must be in format '<number> <unit>', got: {v}")
 
         try:
             retention_value = int(parts[0])
@@ -306,9 +279,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
             raise ValueError(f"Invalid retention value: {parts[0]}")
 
         if parts[1].lower() not in valid_units:
-            raise ValueError(
-                f"Invalid retention unit: {parts[1]}. Must be one of {valid_units}"
-            )
+            raise ValueError(f"Invalid retention unit: {parts[1]}. Must be one of {valid_units}")
 
         return v
 

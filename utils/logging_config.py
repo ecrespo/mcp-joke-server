@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Any
+from typing import Any
 
 from loguru import logger as _loguru_logger
 
@@ -102,10 +103,7 @@ def configure_logger(console_write: Callable[[str], Any]) -> _loguru_logger.__cl
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
     file_format = (
-        "{time:YYYY-MM-DD HH:mm:ss.SSS} | "
-        "{level: <8} | "
-        "{name}:{function}:{line} - "
-        "{message}"
+        "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}"
     )
 
     _loguru_logger.add(

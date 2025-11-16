@@ -10,40 +10,46 @@ Tests for concurrent execution patterns and edge cases:
 - Task cancellation
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
 import time
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from main import tool_aget_joke, tool_aget_joke_by_id, tool_aget_joke_by_type
+from utils.exceptions import JokeAPIConnectionError, JokeAPITimeoutError
+from utils.model import Joke, Jokes
 from utils.RequestAPIJokes import (
     AsyncJokeAPIClient,
+    _aclient,
     aget_joke,
-    aget_ten_jokes,
     aget_joke_by_id,
     aget_jokes_by_type,
-    _aclient,
+    aget_ten_jokes,
 )
-from main import tool_aget_joke, tool_aget_joke_by_id, tool_aget_joke_by_type
-from utils.model import Joke, Jokes
-from utils.exceptions import JokeAPITimeoutError, JokeAPIConnectionError
-
 
 # Access the underlying functions from the decorated tools
-_tool_aget_joke_func = tool_aget_joke.fn if hasattr(tool_aget_joke, 'fn') else tool_aget_joke
-_tool_aget_joke_by_id_func = tool_aget_joke_by_id.fn if hasattr(tool_aget_joke_by_id, 'fn') else tool_aget_joke_by_id
-_tool_aget_joke_by_type_func = tool_aget_joke_by_type.fn if hasattr(tool_aget_joke_by_type, 'fn') else tool_aget_joke_by_type
+_tool_aget_joke_func = tool_aget_joke.fn if hasattr(tool_aget_joke, "fn") else tool_aget_joke
+_tool_aget_joke_by_id_func = (
+    tool_aget_joke_by_id.fn if hasattr(tool_aget_joke_by_id, "fn") else tool_aget_joke_by_id
+)
+_tool_aget_joke_by_type_func = (
+    tool_aget_joke_by_type.fn if hasattr(tool_aget_joke_by_type, "fn") else tool_aget_joke_by_type
+)
 
 
 @pytest.fixture
 def create_joke():
     """Factory for creating jokes."""
+
     def _create(joke_id, joke_type="general"):
         return Joke(
             id=joke_id,
             type=joke_type,
             setup=f"Setup for joke {joke_id}",
-            punchline=f"Punchline for joke {joke_id}"
+            punchline=f"Punchline for joke {joke_id}",
         )
+
     return _create
 
 
@@ -57,7 +63,7 @@ class TestConcurrentRequestHandling:
 
         jokes = [create_joke(i) for i in range(num_concurrent)]
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = jokes
 
             results = await asyncio.gather(*[aget_joke() for _ in range(num_concurrent)])
@@ -72,11 +78,12 @@ class TestConcurrentRequestHandling:
         joke = create_joke(1)
         jokes = Jokes(jokes=[create_joke(i) for i in range(1, 11)])
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get_joke, \
-             patch.object(_aclient, 'get_ten_jokes', new_callable=AsyncMock) as mock_get_ten, \
-             patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get_by_id, \
-             patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get_by_type:
-
+        with (
+            patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get_joke,
+            patch.object(_aclient, "get_ten_jokes", new_callable=AsyncMock) as mock_get_ten,
+            patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get_by_id,
+            patch.object(_aclient, "get_jokes_by_type", new_callable=AsyncMock) as mock_get_by_type,
+        ):
             mock_get_joke.return_value = joke
             mock_get_ten.return_value = jokes
             mock_get_by_id.return_value = joke
@@ -109,10 +116,11 @@ class TestConcurrentRequestHandling:
         joke = create_joke(1)
         jokes = Jokes(jokes=[create_joke(i) for i in range(1, 11)])
 
-        with patch('main.api_aget_joke', new_callable=AsyncMock) as mock_aget, \
-             patch('main.api_aget_joke_by_id', new_callable=AsyncMock) as mock_aget_by_id, \
-             patch('main.api_aget_jokes_by_type', new_callable=AsyncMock) as mock_aget_by_type:
-
+        with (
+            patch("main.api_aget_joke", new_callable=AsyncMock) as mock_aget,
+            patch("main.api_aget_joke_by_id", new_callable=AsyncMock) as mock_aget_by_id,
+            patch("main.api_aget_jokes_by_type", new_callable=AsyncMock) as mock_aget_by_type,
+        ):
             mock_aget.return_value = joke
             mock_aget_by_id.return_value = joke
             mock_aget_by_type.return_value = jokes
@@ -149,12 +157,11 @@ class TestConcurrentErrorHandling:
             else:
                 responses.append(create_joke(i))
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = responses
 
             results = await asyncio.gather(
-                *[aget_joke() for _ in range(20)],
-                return_exceptions=True
+                *[aget_joke() for _ in range(20)], return_exceptions=True
             )
 
             assert len(results) == 20
@@ -169,12 +176,11 @@ class TestConcurrentErrorHandling:
     @pytest.mark.asyncio
     async def test_concurrent_requests_all_fail(self):
         """Test handling when all concurrent requests fail."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = JokeAPITimeoutError()
 
             results = await asyncio.gather(
-                *[aget_joke() for _ in range(10)],
-                return_exceptions=True
+                *[aget_joke() for _ in range(10)], return_exceptions=True
             )
 
             assert all(isinstance(r, JokeAPITimeoutError) for r in results)
@@ -183,7 +189,7 @@ class TestConcurrentErrorHandling:
     @pytest.mark.asyncio
     async def test_concurrent_requests_fail_fast(self):
         """Test fail-fast behavior without return_exceptions."""
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = JokeAPIConnectionError()
 
             # Without return_exceptions, should raise on first error
@@ -197,12 +203,13 @@ class TestConcurrentPerformance:
     @pytest.mark.asyncio
     async def test_concurrent_execution_is_parallel(self, create_joke):
         """Test that concurrent requests execute in parallel."""
+
         # Simulate slow async operation
         async def slow_get_joke():
             await asyncio.sleep(0.1)  # 100ms delay
             return create_joke(1)
 
-        with patch.object(_aclient, 'get_joke', side_effect=slow_get_joke):
+        with patch.object(_aclient, "get_joke", side_effect=slow_get_joke):
             start_time = time.time()
 
             # 10 concurrent requests, each taking 100ms
@@ -217,11 +224,12 @@ class TestConcurrentPerformance:
     @pytest.mark.asyncio
     async def test_sequential_execution_is_slower(self, create_joke):
         """Test that sequential execution is slower than concurrent."""
+
         async def slow_get_joke():
             await asyncio.sleep(0.05)  # 50ms delay
             return create_joke(1)
 
-        with patch.object(_aclient, 'get_joke', side_effect=slow_get_joke):
+        with patch.object(_aclient, "get_joke", side_effect=slow_get_joke):
             # Concurrent execution
             start_concurrent = time.time()
             await asyncio.gather(*[aget_joke() for _ in range(10)])
@@ -243,7 +251,7 @@ class TestConcurrentPerformance:
 
         jokes = [create_joke(i) for i in range(num_requests)]
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = jokes
 
             start_time = time.time()
@@ -269,15 +277,11 @@ class TestAsyncioGatherPatterns:
             JokeAPIConnectionError(),
         ]
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = responses
 
             results = await asyncio.gather(
-                aget_joke(),
-                aget_joke(),
-                aget_joke(),
-                aget_joke(),
-                return_exceptions=True
+                aget_joke(), aget_joke(), aget_joke(), aget_joke(), return_exceptions=True
             )
 
             assert len(results) == 4
@@ -294,7 +298,7 @@ class TestAsyncioGatherPatterns:
             JokeAPITimeoutError(),
         ]
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = responses
 
             # Should raise the first exception
@@ -315,7 +319,7 @@ class TestAsyncioGatherPatterns:
         """Test gather with single task."""
         joke = create_joke(1)
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = joke
 
             results = await asyncio.gather(aget_joke())
@@ -330,11 +334,12 @@ class TestTaskCancellation:
     @pytest.mark.asyncio
     async def test_task_cancellation_during_execution(self, create_joke):
         """Test cancelling tasks during execution."""
+
         async def long_running_get_joke():
             await asyncio.sleep(1.0)  # Long delay
             return create_joke(1)
 
-        with patch.object(_aclient, 'get_joke', side_effect=long_running_get_joke):
+        with patch.object(_aclient, "get_joke", side_effect=long_running_get_joke):
             task = asyncio.create_task(aget_joke())
 
             # Let it start
@@ -361,7 +366,7 @@ class TestTaskCancellation:
                 await asyncio.sleep(0.05)
                 return create_joke(2)
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock, side_effect=mock_get_joke):
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock, side_effect=mock_get_joke):
             slow_task = asyncio.create_task(aget_joke())
             fast_task = asyncio.create_task(aget_joke())
 
@@ -392,7 +397,7 @@ class TestResourceSharing:
 
         joke = create_joke(1)
 
-        with patch.object(client1, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(client1, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = joke
 
             # Multiple concurrent requests using singleton
@@ -440,7 +445,7 @@ class TestResourceSharing:
                 mock.__aexit__ = AsyncMock()
                 return mock
 
-        with patch('httpx.AsyncClient', side_effect=mock_client_factory):
+        with patch("httpx.AsyncClient", side_effect=mock_client_factory):
             result1, result2 = await asyncio.gather(
                 client1.get_joke(),
                 client2.get_joke(),
@@ -459,7 +464,7 @@ class TestConcurrentEdgeCases:
         """Test rapid-fire requests with minimal delay."""
         jokes = [create_joke(i) for i in range(1000)]
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = jokes
 
             # Create 1000 tasks as fast as possible
@@ -482,12 +487,11 @@ class TestConcurrentEdgeCases:
             else:
                 responses.append(JokeAPITimeoutError())
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = responses
 
             results = await asyncio.gather(
-                *[aget_joke() for _ in range(100)],
-                return_exceptions=True
+                *[aget_joke() for _ in range(100)], return_exceptions=True
             )
 
             successes = [r for r in results if isinstance(r, Joke)]
@@ -505,7 +509,7 @@ class TestConcurrentEdgeCases:
             # Each outer call makes 5 inner concurrent calls
             return await asyncio.gather(*[aget_joke() for _ in range(5)])
 
-        with patch.object(_aclient, 'get_joke', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = joke
 
             # 10 outer concurrent calls, each making 5 inner calls = 50 total
@@ -524,12 +528,10 @@ class TestConcurrencyWithDifferentJokeTypes:
         """Test concurrent requests for all joke types."""
         types = ["general", "programming", "knock-knock", "dad"]
 
-        jokes_by_type = {
-            t: Jokes(jokes=[create_joke(i, t) for i in range(1, 6)])
-            for t in types
-        }
+        jokes_by_type = {t: Jokes(jokes=[create_joke(i, t) for i in range(1, 6)]) for t in types}
 
-        with patch.object(_aclient, 'get_jokes_by_type', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_jokes_by_type", new_callable=AsyncMock) as mock_get:
+
             async def get_by_type(joke_type):
                 return jokes_by_type[joke_type]
 
@@ -550,7 +552,8 @@ class TestConcurrencyWithDifferentJokeTypes:
 
         jokes = {joke_id: create_joke(joke_id) for joke_id in ids}
 
-        with patch.object(_aclient, 'get_joke_by_id', new_callable=AsyncMock) as mock_get:
+        with patch.object(_aclient, "get_joke_by_id", new_callable=AsyncMock) as mock_get:
+
             async def get_by_id(joke_id):
                 return jokes[joke_id]
 

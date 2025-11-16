@@ -408,12 +408,67 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 
 - Verified setup and tests on 2025-11-15 (local environment).
 
+## Docker Support
+
+The project includes full Docker support with multi-stage builds and Docker Compose configurations.
+
+### Quick Start with Docker
+
+```bash
+# Run with HTTP transport (default)
+docker compose up mcp-server-http
+
+# Run with SSE transport
+docker compose --profile sse up mcp-server-sse
+
+# Run in background
+docker compose up -d mcp-server-http
+```
+
+For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+
+## Code Quality Tools
+
+The project uses the following tools for code quality:
+
+- **Ruff**: Fast Python linter and formatter
+- **Black**: Code formatter for consistent style
+- **mypy**: Static type checker
+
+### Running Quality Checks Locally
+
+```bash
+# Install dev dependencies
+uv sync --extra dev
+
+# Run Ruff linter
+uv run ruff check .
+
+# Run Ruff formatter
+uv run ruff format .
+
+# Run Black formatter
+uv run black .
+
+# Run mypy type checker
+uv run mypy .
+```
+
+### CI/CD
+
+GitHub Actions automatically validates code quality on every push and pull request. The workflow includes:
+
+- Ruff linting and formatting checks
+- Black formatting validation
+- mypy type checking
+- pytest test suite with coverage
+- Docker image building
+
+See `.github/workflows/ci.yml` for the complete CI configuration.
+
 ## TODOs
 
 - Sync package version in `pyproject.toml` (currently `0.1.0`) with the latest entry in `docs/CHANGELOG.md` (e.g., `0.2.x`).
-- Document production deployment guidelines for HTTP/SSE transports (reverse proxy, TLS, health checks).  
-- Provide Dockerfile and container run instructions (if containerization is desired).
-- Add badges (CI, coverage) once CI is configured.
 
 ## Troubleshooting
 

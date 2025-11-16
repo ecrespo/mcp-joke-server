@@ -6,8 +6,9 @@ for MCP servers. This is the default transport for MCP and communicates
 via standard input and output streams.
 """
 
-from typing import Dict, Any
-from strategies.base import TransportStrategy, TransportConfig
+from typing import Any
+
+from strategies.base import TransportStrategy
 
 
 class StdioTransportStrategy(TransportStrategy):
@@ -41,7 +42,7 @@ class StdioTransportStrategy(TransportStrategy):
         """
         return "stdio"
 
-    def get_transport_kwargs(self) -> Dict[str, Any]:
+    def get_transport_kwargs(self) -> dict[str, Any]:
         """
         Get keyword arguments for STDIO transport.
 

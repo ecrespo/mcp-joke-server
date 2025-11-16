@@ -6,11 +6,12 @@ Note: Some tests may make real HTTP calls and can fail if the API is down.
 """
 
 import pytest
+
 from repositories import (
-    get_joke_repository,
-    HTTPJokeRepository,
     CachedJokeRepository,
+    HTTPJokeRepository,
     RepositoryFactory,
+    get_joke_repository,
     reset_repository,
 )
 from repositories.base import JokeNotFoundError, JokeRepositoryError
@@ -90,14 +91,14 @@ class TestCachedRepositoryIntegration:
             # First call - should miss cache
             joke1 = cached_repo.get_joke_by_id(1)
             stats_after_first = cached_repo.get_cache_stats()
-            assert stats_after_first['misses'] == 1
-            assert stats_after_first['hits'] == 0
+            assert stats_after_first["misses"] == 1
+            assert stats_after_first["hits"] == 0
 
             # Second call - should hit cache
             joke2 = cached_repo.get_joke_by_id(1)
             stats_after_second = cached_repo.get_cache_stats()
-            assert stats_after_second['misses'] == 1
-            assert stats_after_second['hits'] == 1
+            assert stats_after_second["misses"] == 1
+            assert stats_after_second["hits"] == 1
 
             # Should be same object
             assert joke1 is joke2
@@ -112,14 +113,14 @@ class TestCachedRepositoryIntegration:
             joke3 = cached_repo.get_joke_by_id(3)
 
             stats = cached_repo.get_cache_stats()
-            assert stats['cache_size'] == 3
-            assert stats['misses'] == 3
+            assert stats["cache_size"] == 3
+            assert stats["misses"] == 3
 
             # Access cached jokes
             joke1_cached = cached_repo.get_joke_by_id(1)
             assert joke1 is joke1_cached
             stats = cached_repo.get_cache_stats()
-            assert stats['hits'] == 1
+            assert stats["hits"] == 1
         except JokeRepositoryError:
             pytest.skip("API is not accessible")
 
@@ -131,7 +132,7 @@ class TestCachedRepositoryIntegration:
 
             # Cache should be empty for random jokes
             stats = cached_repo.get_cache_stats()
-            assert stats['cache_size'] == 0
+            assert stats["cache_size"] == 0
         except JokeRepositoryError:
             pytest.skip("API is not accessible")
 
@@ -213,7 +214,7 @@ class TestEndToEndJokeFlow:
             # Verify cache is working
             if isinstance(repo, CachedJokeRepository):
                 stats = repo.get_cache_stats()
-                assert stats['cache_size'] > 0  # Should have cached something
+                assert stats["cache_size"] > 0  # Should have cached something
 
         except JokeRepositoryError:
             pytest.skip("API is not accessible")
@@ -249,9 +250,9 @@ class TestEndToEndJokeFlow:
 
             stats2 = repo.get_cache_stats()
             # Should have many cache hits
-            assert stats2['hits'] == 10
-            assert stats2['misses'] == 1
-            assert stats2['hit_rate_percent'] > 90
+            assert stats2["hits"] == 10
+            assert stats2["misses"] == 1
+            assert stats2["hit_rate_percent"] > 90
 
         except JokeRepositoryError:
             pytest.skip("API is not accessible")
@@ -288,8 +289,8 @@ class TestRepositorySwapping:
         joke2 = cached_repo.get_joke_by_id(1)  # Cache hit
 
         assert joke1 is joke2
-        assert mock_repository.calls['get_joke_by_id'] == 1
+        assert mock_repository.calls["get_joke_by_id"] == 1
 
         stats = cached_repo.get_cache_stats()
-        assert stats['hits'] == 1
-        assert stats['misses'] == 1
+        assert stats["hits"] == 1
+        assert stats["misses"] == 1

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class Joke:
     """
@@ -19,6 +20,7 @@ class Joke:
     :ivar id: A unique identifier for the joke.
     :type id: int
     """
+
     type: str
     setup: str
     punchline: str
@@ -54,6 +56,7 @@ class Joke:
             "id": self.id,
         }
 
+
 @dataclass(frozen=True)
 class Jokes:
     """
@@ -66,6 +69,7 @@ class Jokes:
     :ivar jokes: A list of Joke objects contained within this collection.
     :type jokes: list[Joke]
     """
+
     jokes: list[Joke]
 
     # Utilidad opcional para consistencia

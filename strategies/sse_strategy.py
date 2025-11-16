@@ -6,9 +6,10 @@ for MCP servers. SSE provides a unidirectional event stream from server
 to client over HTTP.
 """
 
-from typing import Dict, Any
 import socket
-from strategies.base import TransportStrategy, TransportConfig
+from typing import Any
+
+from strategies.base import TransportStrategy
 
 
 class SseTransportStrategy(TransportStrategy):
@@ -45,7 +46,7 @@ class SseTransportStrategy(TransportStrategy):
         """
         return "sse"
 
-    def get_transport_kwargs(self) -> Dict[str, Any]:
+    def get_transport_kwargs(self) -> dict[str, Any]:
         """
         Get keyword arguments for SSE transport.
 

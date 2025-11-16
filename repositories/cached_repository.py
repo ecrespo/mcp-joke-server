@@ -5,15 +5,16 @@ This module provides a caching decorator for joke repositories, adding
 in-memory caching capabilities to any JokeRepository implementation.
 """
 
-from typing import Annotated
 from datetime import datetime, timedelta
+from typing import Annotated
+
 from pydantic import Field
 
-from repositories.base import JokeRepository, JokeRepositoryError, JokeNotFoundError
-from utils.model import Joke, Jokes
+from repositories.base import JokeRepository
 from utils.constants import JOKE_TYPES, joke_type_value
 from utils.logger import setup_logger
 from utils.logging_interfaces import LoggerProtocol
+from utils.model import Joke, Jokes
 
 
 class CacheEntry:
@@ -64,7 +65,13 @@ class CachedJokeRepository(JokeRepository):
     :ivar _stats: Cache statistics
     """
 
-    def __init__(self, repository: JokeRepository, default_ttl: int = 300, *, logger: LoggerProtocol | None = None):
+    def __init__(
+        self,
+        repository: JokeRepository,
+        default_ttl: int = 300,
+        *,
+        logger: LoggerProtocol | None = None,
+    ):
         """
         Initialize the cached repository.
 
@@ -77,9 +84,9 @@ class CachedJokeRepository(JokeRepository):
         self._cache: dict[str, CacheEntry] = {}
         self._default_ttl = default_ttl
         self._stats = {
-            'hits': 0,
-            'misses': 0,
-            'evictions': 0,
+            "hits": 0,
+            "misses": 0,
+            "evictions": 0,
         }
         self._log: LoggerProtocol = logger or setup_logger()
         self._log.info(
@@ -97,16 +104,16 @@ class CachedJokeRepository(JokeRepository):
         if key in self._cache:
             entry = self._cache[key]
             if not entry.is_expired():
-                self._stats['hits'] += 1
+                self._stats["hits"] += 1
                 self._log.debug(f"Cache HIT for key: {key}")
                 return entry.value
             else:
                 # Entry expired, remove it
                 del self._cache[key]
-                self._stats['evictions'] += 1
+                self._stats["evictions"] += 1
                 self._log.debug(f"Cache entry expired and evicted: {key}")
 
-        self._stats['misses'] += 1
+        self._stats["misses"] += 1
         self._log.debug(f"Cache MISS for key: {key}")
         return None
 
@@ -128,13 +135,10 @@ class CachedJokeRepository(JokeRepository):
 
         This is called periodically to prevent memory bloat.
         """
-        expired_keys = [
-            key for key, entry in self._cache.items()
-            if entry.is_expired()
-        ]
+        expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
         for key in expired_keys:
             del self._cache[key]
-            self._stats['evictions'] += 1
+            self._stats["evictions"] += 1
 
         if expired_keys:
             self._log.debug(f"Cleared {len(expired_keys)} expired cache entries")
@@ -253,18 +257,14 @@ class CachedJokeRepository(JokeRepository):
         :return: Dictionary with cache hits, misses, and evictions
         :rtype: dict[str, int]
         """
-        total_requests = self._stats['hits'] + self._stats['misses']
-        hit_rate = (
-            self._stats['hits'] / total_requests * 100
-            if total_requests > 0
-            else 0.0
-        )
+        total_requests = self._stats["hits"] + self._stats["misses"]
+        hit_rate = self._stats["hits"] / total_requests * 100 if total_requests > 0 else 0.0
 
         return {
             **self._stats,
-            'total_requests': total_requests,
-            'hit_rate_percent': round(hit_rate, 2),
-            'cache_size': len(self._cache),
+            "total_requests": total_requests,
+            "hit_rate_percent": round(hit_rate, 2),
+            "cache_size": len(self._cache),
         }
 
     def __repr__(self) -> str:

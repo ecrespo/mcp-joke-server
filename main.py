@@ -51,7 +51,8 @@ def tool_get_joke() -> str:
     :rtype: str
     """
     joke = joke_repo.get_random_joke()
-    resp = joke.__dict__
+    # Evitar uso directo de __dict__ en dataclasses
+    resp = joke.to_dict()
     return extract_joke(resp)
 
 
@@ -70,7 +71,8 @@ def tool_get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> str:
     :rtype: str
     """
     joke = joke_repo.get_joke_by_id(joke_id)
-    resp = joke.__dict__
+    # Evitar uso directo de __dict__ en dataclasses
+    resp = joke.to_dict()
     return extract_joke(resp)
 
 
@@ -89,7 +91,9 @@ def tool_get_joke_by_type(joke_type: JOKE_TYPES) -> str:
     :rtype: str
     """
     jokes = joke_repo.get_jokes_by_type(joke_type)
-    resp = jokes.__dict__['jokes'][0].__dict__
+    # Evitar acceso a __dict__; usar métodos del modelo
+    first_joke = jokes.get_jokes()[0]
+    resp = first_joke.to_dict()
 
     return extract_joke(resp)
 

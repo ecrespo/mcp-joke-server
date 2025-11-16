@@ -24,6 +24,36 @@ class Joke:
     punchline: str
     id: int
 
+    # Getters y utilidades
+    def get_type(self) -> str:
+        """Devuelve el tipo de chiste."""
+        return self.type
+
+    def get_setup(self) -> str:
+        """Devuelve el enunciado (setup) del chiste."""
+        return self.setup
+
+    def get_punchline(self) -> str:
+        """Devuelve el remate (punchline) del chiste."""
+        return self.punchline
+
+    def get_id(self) -> int:
+        """Devuelve el identificador del chiste."""
+        return self.id
+
+    def to_dict(self) -> dict:
+        """
+        Representación en diccionario del dataclass, evitando el uso de `__dict__`.
+
+        :return: Diccionario con las claves `type`, `setup`, `punchline`, `id`.
+        """
+        return {
+            "type": self.type,
+            "setup": self.setup,
+            "punchline": self.punchline,
+            "id": self.id,
+        }
+
 @dataclass(frozen=True)
 class Jokes:
     """
@@ -37,3 +67,8 @@ class Jokes:
     :type jokes: list[Joke]
     """
     jokes: list[Joke]
+
+    # Utilidad opcional para consistencia
+    def get_jokes(self) -> list[Joke]:
+        """Devuelve la lista de chistes."""
+        return self.jokes

@@ -165,6 +165,43 @@ class TransportStrategyFactory:
         return [transport.value for transport in cls._strategy_registry.keys()]
 
 
+def create_transport_strategy(
+    transport_type: TransportType | str,
+    config: TransportConfig | None = None,
+    *,
+    host: str | None = None,
+    port: int | None = None,
+    show_banner: bool = True,
+) -> TransportStrategy:
+    """
+    Create a transport strategy with explicit dependency injection.
+
+    This helper avoids reading global Settings and instead accepts the
+    transport type and configuration explicitly. Prefer this in
+    application code to reduce coupling to environment/config singletons.
+
+    :param transport_type: Transport type (enum or string: "stdio"|"http"|"sse")
+    :param config: Optional TransportConfig. If not provided, one is
+                   constructed from host/port/show_banner.
+    :param host: Host for HTTP/SSE transports (ignored by stdio)
+    :param port: Port for HTTP/SSE transports (ignored by stdio)
+    :param show_banner: Whether to show FastMCP banner on start
+    :return: Configured transport strategy instance
+    :raises ValueError: If arguments are invalid
+    """
+    # Prepare configuration
+    if config is None:
+        # Fallback sane defaults if host/port are not given
+        config = TransportConfig(
+            host=host or "0.0.0.0",
+            port=port or 8000,
+            show_banner=show_banner,
+        )
+
+    # Delegate to factory
+    return TransportStrategyFactory.create(transport_type, config)
+
+
 def create_transport_strategy_from_settings() -> TransportStrategy:
     """
     Create a transport strategy from application settings.
@@ -188,9 +225,9 @@ def create_transport_strategy_from_settings() -> TransportStrategy:
         show_banner=True,
     )
 
-    # Create and return strategy
+    # Create and return strategy (delegates to DI-friendly helper)
     log.info(f"Creating transport strategy: {transport_type.value}")
-    strategy = TransportStrategyFactory.create(transport_type, config)
+    strategy = create_transport_strategy(transport_type, config)
 
     # Validate before returning
     strategy.validate()

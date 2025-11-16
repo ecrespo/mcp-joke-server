@@ -138,21 +138,55 @@ async def tool_aget_joke_by_type(joke_type: JOKE_TYPES) -> str:
 
 
 
-if __name__ == "__main__":
-    from strategies import create_transport_strategy_from_settings
+def run_server(
+    transport_type: str | None = None,
+    *,
+    host: str | None = None,
+    port: int | None = None,
+    show_banner: bool = True,
+) -> None:
+    """
+    Arranca el servidor MCP usando inyección de configuración.
+
+    Si no se especifican parámetros, se consultan los valores por defecto
+    desde Settings en el bloque de compatibilidad al final.
+    """
+    from strategies.factory import create_transport_strategy
     from utils.logger import log
 
-    # Create transport strategy from settings using Strategy Pattern
-    strategy = create_transport_strategy_from_settings()
+    # Crear estrategia con DI (no leer Settings aquí)
+    if transport_type is None:
+        # Dejar que la capa de invocación decida los valores por defecto
+        # pero aquí aseguramos un valor seguro (stdio) si nadie inyecta.
+        transport_type = "stdio"
 
-    # Prepare the transport (e.g., validate port availability)
+    strategy = create_transport_strategy(
+        transport_type=transport_type,
+        host=host,
+        port=port,
+        show_banner=show_banner,
+    )
+
+    # Preparar transporte
     strategy.prepare()
 
-    # Get transport-specific kwargs
+    # Obtener kwargs específicos del transporte
     transport_kwargs = strategy.get_transport_kwargs()
 
     log.info(f"Starting MCP server with {strategy.get_transport_name()} transport")
     log.debug(f"Transport configuration: {transport_kwargs}")
 
-    # Run the server with the selected strategy
+    # Ejecutar servidor
     mcp.run(**transport_kwargs)
+
+
+if __name__ == "__main__":
+    # Compatibilidad: leer Settings solo aquí y pasarlos por inyección
+    from utils.config import Settings
+
+    run_server(
+        transport_type=Settings.MCP_PROTOCOL,
+        host=Settings.MCP_SERVER_HOST,
+        port=Settings.MCP_SERVER_PORT,
+        show_banner=True,
+    )

@@ -158,21 +158,33 @@ class RichConsoleRenderer(ConsoleRendererProtocol):
         """
         from rich.tree import Tree
 
-        def add_to_tree(tree, node):
-            if isinstance(node, dict):
-                for k, v in node.items():
+        def add_to_tree(parent, node):
+            """Add a node (dict/list/leaf) into a Rich Tree, with minimal branching.
+
+            This reducer splits responsibilities into small helpers to lower cognitive
+            complexity while preserving the exact rendering behavior.
+            """
+
+            def handle_mapping(container: Any, mapping: dict[str, Any]) -> None:
+                for k, v in mapping.items():
                     if isinstance(v, (dict, list)):
-                        branch = tree.add(f"[cyan]{k}[/cyan]")
+                        branch = container.add(f"[cyan]{k}[/cyan]")
                         add_to_tree(branch, v)
                     else:
-                        tree.add(f"[cyan]{k}[/cyan]: [white]{v}[/white]")
-            elif isinstance(node, list):
-                for i, item in enumerate(node):
+                        container.add(f"[cyan]{k}[/cyan]: [white]{v}[/white]")
+
+            def handle_sequence(container: Any, seq: list[Any]) -> None:
+                for i, item in enumerate(seq):
                     if isinstance(item, (dict, list)):
-                        branch = tree.add(f"[yellow][{i}][/yellow]")
+                        branch = container.add(f"[yellow][{i}][/yellow]")
                         add_to_tree(branch, item)
                     else:
-                        tree.add(f"[yellow][{i}][/yellow]: [white]{item}[/white]")
+                        container.add(f"[yellow][{i}][/yellow]: [white]{item}[/white]")
+
+            if isinstance(node, dict):
+                handle_mapping(parent, node)
+            elif isinstance(node, list):
+                handle_sequence(parent, node)
 
         tree = Tree(f"[bold]{title}[/bold]")
         add_to_tree(tree, data)

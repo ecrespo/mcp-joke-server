@@ -101,9 +101,74 @@ class JokeAPIClient:
             log.error(f"Error al parsear respuesta de {url}: {e}")
             raise JokeAPIParseError(f"Error al parsear la respuesta: {e}")
 
-    def get_joke(self) -> Joke:
+
+class AsyncJokeAPIClient:
+    """
+    Cliente asíncrono para interactuar con el servicio de Joke API.
+
+    Implementa una versión asíncrona del Template Method utilizado en
+    JokeAPIClient, usando httpx.AsyncClient bajo asyncio. Mantiene el mismo
+    modelo de errores y parseo que la versión síncrona.
+
+    :ivar base_url: URL base del servicio de API de chistes
+    :type base_url: str
+    :ivar timeout: Timeout de solicitud en segundos
+    :type timeout: float
+    """
+
+    def __init__(self, base_url: str = URL, timeout: float = 10.0):
+        self.base_url = base_url
+        self.timeout = timeout
+
+    async def _make_request_async(
+        self,
+        endpoint: str,
+        parser: Callable[[dict[str, Any]], T]
+    ) -> T:
         """
-        Fetch a random joke from the joke service.
+        Método plantilla asíncrono para realizar solicitudes HTTP a la API.
+
+        :param endpoint: Ruta del endpoint (p. ej., "/random_joke")
+        :param parser: Función que transforma el JSON en el tipo deseado
+        :return: Objeto parseado
+        :raises JokeAPITimeoutError: Si la solicitud expira
+        :raises JokeAPIConnectionError: Si falla la conexión
+        :raises JokeAPIHTTPError: Si la API devuelve un status distinto de 200
+        :raises JokeAPIParseError: Si falla el parseo del cuerpo
+        """
+        url = f"{self.base_url}{endpoint}"
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(url)
+        except httpx.ReadTimeout as e:
+            log.error(f"Timeout al conectar con {url}: {e}")
+            raise JokeAPITimeoutError()
+        except httpx.ConnectError as e:
+            log.error(f"Error de conexión con {url}: {e}")
+            raise JokeAPIConnectionError()
+        except httpx.HTTPError as e:
+            log.error(f"Error HTTP inesperado en {url}: {e}")
+            raise JokeAPIConnectionError(f"Error HTTP inesperado: {e}")
+
+        if response.status_code != 200:
+            log.error(f"Error {response.status_code} al obtener {url}: {response.text}")
+            raise JokeAPIHTTPError(
+                message="Error al obtener información del servicio de Jokes",
+                status_code=response.status_code,
+                response_text=response.text
+            )
+
+        try:
+            response_data = response.json()
+            return parser(response_data)
+        except (ValueError, TypeError, KeyError) as e:
+            log.error(f"Error al parsear respuesta de {url}: {e}")
+            raise JokeAPIParseError(f"Error al parsear la respuesta: {e}")
+
+    async def get_joke(self) -> Joke:
+        """
+        Fetch a random joke from the joke service (async).
 
         :return: A random joke
         :rtype: Joke
@@ -112,11 +177,11 @@ class JokeAPIClient:
         :raises JokeAPIHTTPError: If the API returns an error status
         :raises JokeAPIParseError: If response parsing fails
         """
-        return self._make_request("/random_joke", lambda data: Joke(**data))
+        return await self._make_request_async("/random_joke", lambda data: Joke(**data))
 
-    def get_ten_jokes(self) -> Jokes:
+    async def get_ten_jokes(self) -> Jokes:
         """
-        Fetch ten random jokes from the joke service.
+        Fetch ten random jokes from the joke service (async).
 
         :return: A collection of ten jokes
         :rtype: Jokes
@@ -125,48 +190,62 @@ class JokeAPIClient:
         :raises JokeAPIHTTPError: If the API returns an error status
         :raises JokeAPIParseError: If response parsing fails
         """
+        return await self._make_request_async(
+            "/random_ten",
+            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+        )
+
+    async def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
+        """Fetch a specific joke by its ID (async)."""
+        return await self._make_request_async(f"/jokes/{joke_id}", lambda data: Joke(**data))
+
+    async def get_jokes_by_type(self, joke_type: JOKE_TYPES) -> Jokes:
+        """Fetch random jokes of a specific type (async)."""
+        jt = joke_type_value(joke_type)
+        return await self._make_request_async(
+            f"/jokes/{jt}/random",
+            lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
+        )
+
+    
+    
+# Métodos públicos síncronos para JokeAPIClient (faltaban en una refactorización previa)
+def _patch_sync_methods_into_client():
+    def _get_joke(self: 'JokeAPIClient') -> Joke:
+        return self._make_request("/random_joke", lambda data: Joke(**data))
+
+    def _get_ten_jokes(self: 'JokeAPIClient') -> Jokes:
         return self._make_request(
             "/random_ten",
             lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 
-    def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
-        """
-        Fetch a specific joke by its ID.
-
-        :param joke_id: The ID of the joke to fetch (must be between 1 and 451)
-        :type joke_id: int
-        :return: The requested joke
-        :rtype: Joke
-        :raises JokeAPITimeoutError: If the request times out
-        :raises JokeAPIConnectionError: If connection fails
-        :raises JokeAPIHTTPError: If the API returns an error status
-        :raises JokeAPIParseError: If response parsing fails
-        """
+    def _get_joke_by_id(self: 'JokeAPIClient', joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
         return self._make_request(f"/jokes/{joke_id}", lambda data: Joke(**data))
 
-    def get_jokes_by_type(self, joke_type: JOKE_TYPES) -> Jokes:
-        """
-        Fetch a random joke of a specific type.
-
-        :param joke_type: The type of joke to fetch (general, knock-knock, programming, or dad)
-        :type joke_type: JOKE_TYPES
-        :return: A joke of the specified type
-        :rtype: Jokes
-        :raises JokeAPITimeoutError: If the request times out
-        :raises JokeAPIConnectionError: If connection fails
-        :raises JokeAPIHTTPError: If the API returns an error status
-        :raises JokeAPIParseError: If response parsing fails
-        """
+    def _get_jokes_by_type(self: 'JokeAPIClient', joke_type: JOKE_TYPES) -> Jokes:
         jt = joke_type_value(joke_type)
         return self._make_request(
             f"/jokes/{jt}/random",
             lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 
+    # Bind methods if missing
+    if not hasattr(JokeAPIClient, "get_joke"):
+        setattr(JokeAPIClient, "get_joke", _get_joke)
+    if not hasattr(JokeAPIClient, "get_ten_jokes"):
+        setattr(JokeAPIClient, "get_ten_jokes", _get_ten_jokes)
+    if not hasattr(JokeAPIClient, "get_joke_by_id"):
+        setattr(JokeAPIClient, "get_joke_by_id", _get_joke_by_id)
+    if not hasattr(JokeAPIClient, "get_jokes_by_type"):
+        setattr(JokeAPIClient, "get_jokes_by_type", _get_jokes_by_type)
+
+_patch_sync_methods_into_client()
+
 
 # Singleton instance for convenience
 _client = JokeAPIClient()
+_aclient = AsyncJokeAPIClient()
 
 
 # Convenience functions that maintain backward compatibility
@@ -186,6 +265,20 @@ def get_joke() -> Joke:
     return _client.get_joke()
 
 
+async def aget_joke() -> Joke:
+    """
+    Versión asíncrona: obtener un chiste aleatorio usando el cliente singleton.
+
+    :return: Un chiste aleatorio
+    :rtype: Joke
+    :raises JokeAPITimeoutError: Si la solicitud expira
+    :raises JokeAPIConnectionError: Si falla la conexión
+    :raises JokeAPIHTTPError: Si la API devuelve error
+    :raises JokeAPIParseError: Si falla el parseo
+    """
+    return await _aclient.get_joke()
+
+
 def get_ten_jokes() -> Jokes:
     """
     Fetch ten random jokes from the joke service.
@@ -200,6 +293,13 @@ def get_ten_jokes() -> Jokes:
     :raises JokeAPIParseError: If response parsing fails
     """
     return _client.get_ten_jokes()
+
+
+async def aget_ten_jokes() -> Jokes:
+    """
+    Versión asíncrona: obtener diez chistes aleatorios.
+    """
+    return await _aclient.get_ten_jokes()
 
 
 def get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
@@ -220,6 +320,11 @@ def get_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
     return _client.get_joke_by_id(joke_id)
 
 
+async def aget_joke_by_id(joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
+    """Versión asíncrona: obtener un chiste por ID."""
+    return await _aclient.get_joke_by_id(joke_id)
+
+
 def get_jokes_by_type(joke_type: JOKE_TYPES) -> Jokes:
     """
     Fetch a random joke of a specific type.
@@ -236,3 +341,8 @@ def get_jokes_by_type(joke_type: JOKE_TYPES) -> Jokes:
     :raises JokeAPIParseError: If response parsing fails
     """
     return _client.get_jokes_by_type(joke_type)
+
+
+async def aget_jokes_by_type(joke_type: JOKE_TYPES) -> Jokes:
+    """Versión asíncrona: obtener chistes por tipo."""
+    return await _aclient.get_jokes_by_type(joke_type)

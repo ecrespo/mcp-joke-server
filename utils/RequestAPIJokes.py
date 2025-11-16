@@ -12,7 +12,7 @@ from pydantic import Field
 
 from utils.model import Joke, Jokes
 from utils.logger import log
-from utils.constants import URL, JOKE_TYPES
+from utils.constants import URL, JOKE_TYPES, joke_type_value
 from utils.exceptions import (
     JokeAPITimeoutError,
     JokeAPIConnectionError,
@@ -158,8 +158,9 @@ class JokeAPIClient:
         :raises JokeAPIHTTPError: If the API returns an error status
         :raises JokeAPIParseError: If response parsing fails
         """
+        jt = joke_type_value(joke_type)
         return self._make_request(
-            f"/jokes/{joke_type}/random",
+            f"/jokes/{jt}/random",
             lambda data: Jokes(jokes=[Joke(**joke) for joke in data])
         )
 

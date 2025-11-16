@@ -100,4 +100,13 @@ def tool_get_joke_by_type(joke_type: JOKE_TYPES) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    from utils.config import Settings
+    protocol_mmcp = Settings.PROTOCOL_MCP
+    if protocol_mmcp == "stdio":
+        mcp.run()
+    else:
+        mcp.run(
+            transport="streamable-http",
+            host=Settings.MCP_SERVER_HOST,
+            port=Settings.MCP_SERVER_PORT
+        )

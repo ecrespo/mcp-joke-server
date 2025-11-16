@@ -11,7 +11,7 @@ from pydantic import Field
 
 from repositories.base import JokeRepository, JokeRepositoryError, JokeNotFoundError
 from utils.model import Joke, Jokes
-from utils.constants import JOKE_TYPES
+from utils.constants import JOKE_TYPES, joke_type_value
 from utils.logger import log
 
 
@@ -206,7 +206,8 @@ class CachedJokeRepository(JokeRepository):
         :rtype: Jokes
         :raises JokeRepositoryError: If the operation fails
         """
-        cache_key = f"jokes:type:{joke_type}"
+        jt = joke_type_value(joke_type)
+        cache_key = f"jokes:type:{jt}"
 
         # Try to get from cache
         cached_jokes = self._get_from_cache(cache_key)
@@ -214,7 +215,7 @@ class CachedJokeRepository(JokeRepository):
             return cached_jokes
 
         # Cache miss - fetch from wrapped repository
-        log.debug(f"Fetching jokes of type {joke_type} from repository")
+        log.debug(f"Fetching jokes of type {jt} from repository")
         jokes = self._repository.get_jokes_by_type(joke_type)
 
         # Cache the result

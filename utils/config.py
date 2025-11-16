@@ -132,6 +132,10 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
         description="Base URL for the external joke API service",
         json_schema_extra={"example": "https://official-joke-api.appspot.com"}
     )
+    MCP_PROTOCOL: str = Field(
+        default="http",
+        description="Protocol for the API URL (STDIO or http)"
+    )
 
     # Server Configuration
     MCP_SERVER_HOST: str = Field(
@@ -200,6 +204,13 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
 
         # Remove trailing slashes for consistency
         return v.rstrip("/")
+
+    @field_validator("MCP_PROTOCOL")
+    @classmethod
+    def validate_mcp_protocol(cls, v: str) -> str:
+        if v not in ["http", "stdio"]:
+            raise ValueError("MCP_PROTOCOL must be either 'http' or 'stdio'")
+        return v
 
     @field_validator("LOG_FILE")
     @classmethod
@@ -321,6 +332,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
         return (
             f"Settings("
             f"API_BASE_URL={self.API_BASE_URL!r}, "
+            f"MCP_PROTOCOL={self.MCP_PROTOCOL!r}, "
             f"MCP_SERVER_HOST={self.MCP_SERVER_HOST!r}, "
             f"MCP_SERVER_PORT={self.MCP_SERVER_PORT}, "
             f"LOG_LEVEL={self.LOG_LEVEL!r}"

@@ -10,7 +10,7 @@ from pydantic import Field
 
 from repositories.base import JokeRepository, JokeRepositoryError, JokeNotFoundError
 from utils.model import Joke, Jokes
-from utils.constants import JOKE_TYPES
+from utils.constants import JOKE_TYPES, joke_type_value
 from utils.RequestAPIJokes import JokeAPIClient
 from utils.exceptions import (
     JokeAPIError,
@@ -134,14 +134,16 @@ class HTTPJokeRepository(JokeRepository):
         :raises JokeRepositoryError: If the operation fails
         """
         try:
-            log.debug(f"Fetching jokes of type: {joke_type}")
+            jt = joke_type_value(joke_type)
+            log.debug(f"Fetching jokes of type: {jt}")
             jokes = self._client.get_jokes_by_type(joke_type)
-            log.debug(f"Successfully fetched {len(jokes.jokes)} jokes of type {joke_type}")
+            log.debug(f"Successfully fetched {len(jokes.jokes)} jokes of type {jt}")
             return jokes
         except JokeAPIError as e:
-            log.error(f"Failed to fetch jokes of type {joke_type}: {e}")
+            jt = joke_type_value(joke_type)
+            log.error(f"Failed to fetch jokes of type {jt}: {e}")
             raise JokeRepositoryError(
-                f"Failed to retrieve jokes of type '{joke_type}' from repository",
+                f"Failed to retrieve jokes of type '{jt}' from repository",
                 cause=e
             )
 

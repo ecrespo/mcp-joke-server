@@ -135,7 +135,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
     MCP_PROTOCOL: str = Field(
         default="stdio", description="MCP transport protocol: 'stdio' (default), 'http', or 'sse'"
     )
-
+    LOCAL_TOKEN: str = Field(description="Local token")
     # Server Configuration
     MCP_SERVER_HOST: str = Field(default="0.0.0.0", description="Host address for the MCP server")
 
@@ -165,6 +165,26 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
         le=3600,
         description="Interval for cleaning up expired sessions in seconds (60s - 1h)",
     )
+
+    @field_validator("LOCAL_TOKEN")
+    @classmethod
+    def validate_local_token(cls, v: str) -> str:
+        """
+        Validate the `LOCAL_TOKEN` field to ensure its value meets the requirements.
+
+        This validator checks if the provided value for the `LOCAL_TOKEN` field is
+        not empty. If the value is empty, it raises a `ValueError` indicating that
+        the `LOCAL_TOKEN` cannot be empty. Otherwise, it returns the valid value.
+
+        :param v: Value assigned to the `LOCAL_TOKEN` field
+        :type v: str
+        :return: Validated value of `LOCAL_TOKEN`
+        :rtype: str
+        :raises ValueError: If the `LOCAL_TOKEN` value is empty
+        """
+        if not v:
+            raise ValueError("LOCAL_TOKEN cannot be empty")
+        return v
 
     @field_validator("API_BASE_URL")
     @classmethod
@@ -317,6 +337,7 @@ class Settings(BaseSettings, metaclass=SingletonSettingsMeta):
             f"Settings("
             f"API_BASE_URL={self.API_BASE_URL!r}, "
             f"MCP_PROTOCOL={self.MCP_PROTOCOL!r}, "
+            f"LOCAL_TOKEN={self.LOCAL_TOKEN!r}, "
             f"MCP_SERVER_HOST={self.MCP_SERVER_HOST!r}, "
             f"MCP_SERVER_PORT={self.MCP_SERVER_PORT}, "
             f"LOG_LEVEL={self.LOG_LEVEL!r}"

@@ -3,16 +3,22 @@ MCP Joke Server - Main application module.
 
 This module implements the FastMCP server with tools for fetching jokes
 using the Repository Pattern for data access abstraction.
+Authentication is enforced for HTTP/SSE transports via Bearer token.
 """
 
 from typing import Annotated
 
-from fastmcp import FastMCP
+from fastmcp import FastMCP, Context
+from fastmcp.exceptions import ToolError
+from fastmcp.server.dependencies import get_http_request
+from fastmcp.server.middleware import Middleware, MiddlewareContext
 from pydantic import Field
 
 from repositories import get_joke_repository
+from utils.auth import LocalTokenValidator
 from utils.constants import CONSISTENT_JOKE, JOKE_TYPES
 from utils.formatters import extract_joke
+from utils.logger import log
 from utils.RequestAPIJokes import (
     aget_joke as api_aget_joke,
 )
@@ -23,8 +29,90 @@ from utils.RequestAPIJokes import (
     aget_jokes_by_type as api_aget_jokes_by_type,
 )
 
-# Initialize MCP server
+
+class LocalTokenAuthMiddleware(Middleware):
+    """
+    Middleware for authenticating requests using local bearer tokens.
+
+    This middleware validates tokens from the Authorization header
+    for HTTP and SSE transports. STDIO transport is not authenticated
+    as it runs in a trusted local environment.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.validator = LocalTokenValidator()
+        log.info("LocalTokenAuthMiddleware initialized")
+
+    async def on_call_tool(self, context: MiddlewareContext, call_next):
+        """
+        Intercept tool calls to validate authentication token.
+
+        Args:
+            context: Middleware context with request information
+            call_next: Function to call next middleware or tool
+
+        Returns:
+            Result from the tool if authenticated
+
+        Raises:
+            ToolError: If authentication fails
+        """
+        try:
+            # Get HTTP request (will be None for stdio transport)
+            request = get_http_request()
+
+            if request is None:
+                # STDIO transport - no authentication required
+                log.debug("STDIO transport detected, skipping authentication")
+                return await call_next(context)
+
+            # Extract token from Authorization header
+            auth_header = request.headers.get("authorization", "")
+
+            if not auth_header:
+                log.warning("Missing Authorization header")
+                raise ToolError(
+                    "Authentication required. Please provide a Bearer token in the Authorization header."
+                )
+
+            # Remove "Bearer " prefix
+            if not auth_header.lower().startswith("bearer "):
+                log.warning("Invalid Authorization header format")
+                raise ToolError(
+                    "Invalid Authorization header format. Expected: 'Bearer <token>'"
+                )
+
+            token = auth_header[7:].strip()  # Remove "Bearer " prefix
+
+            # Validate token
+            token_info = self.validator.validate_token(token)
+
+            if not token_info:
+                log.warning("Token validation failed")
+                raise ToolError("Authentication failed. Invalid or expired token.")
+
+            # Store token info in context for potential use in tools
+            context.fastmcp_context.set_state("authenticated", True)
+            context.fastmcp_context.set_state("auth_type", token_info.get("type"))
+
+            log.info("Request authenticated successfully")
+
+            # Proceed to the tool
+            return await call_next(context)
+
+        except ToolError:
+            # Re-raise ToolError as-is
+            raise
+        except Exception as e:
+            log.error(f"Unexpected error in authentication middleware: {e}")
+            log.exception("Authentication middleware error details:")
+            raise ToolError(f"Authentication error: {str(e)}")
+
+
+# Initialize MCP server with authentication middleware
 mcp = FastMCP("jokes (python)")
+mcp.add_middleware(LocalTokenAuthMiddleware())
 
 # Initialize joke repository (singleton pattern)
 # Uses cached repository by default for better performance

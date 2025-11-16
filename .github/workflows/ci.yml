@@ -55,6 +55,7 @@ jobs:
     - name: Run tests with pytest
       env:
         API_BASE_URL: https://official-joke-api.appspot.com
+        LOCAL_TOKEN: test-token-for-ci
       run: |
         uv run pytest -v --cov=. --cov-report=xml --cov-report=html
 

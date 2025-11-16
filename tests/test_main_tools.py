@@ -5,31 +5,12 @@ Se evita levantar el servidor MCP; solo se importan y ejecutan las
 funciones decoradas como herramientas. Se sustituye el repositorio
 global `joke_repo` por el `MockJokeRepository` definido en conftest.py
 para evitar IO de red y tener datos deterministas.
+
+Note: Environment variables (API_BASE_URL, LOCAL_TOKEN) are now managed
+by the global ensure_env_vars fixture in conftest.py.
 """
 
-import os
-from collections.abc import Generator
-
 import pytest
-
-
-@pytest.fixture(autouse=True)
-def _ensure_api_base_url() -> Generator[None]:
-    """
-    Asegura que `API_BASE_URL` esté presente antes de importar módulos que lo
-    requieren en tiempo de importación (utils.constants -> Settings).
-    """
-    prev = os.environ.get("API_BASE_URL")
-    os.environ["API_BASE_URL"] = os.environ.get(
-        "API_BASE_URL", "https://official-joke-api.appspot.com"
-    )
-    try:
-        yield
-    finally:
-        if prev is None:
-            os.environ.pop("API_BASE_URL", None)
-        else:
-            os.environ["API_BASE_URL"] = prev
 
 
 @pytest.fixture

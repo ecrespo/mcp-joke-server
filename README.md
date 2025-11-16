@@ -94,6 +94,10 @@ Required:
     - `GET /jokes/{id}`
     - `GET /jokes/{type}/random`
 
+- `LOCAL_TOKEN` — Authentication token for HTTP/SSE transports. Used to secure tool access via Bearer token authentication.
+  - Example: `LOCAL_TOKEN=-KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys`
+  - **Note:** STDIO transport does not require authentication as it runs in a trusted local environment.
+
 Optional (defaults in `utils/config.py`):
 
 - `MCP_PROTOCOL` (default `stdio`) — `stdio`, `http`, or `sse`
@@ -110,7 +114,8 @@ Example `.env`:
 
 ```
 API_BASE_URL=https://official-joke-api.appspot.com
-MCP_PROTOCOL=stdio
+LOCAL_TOKEN=-KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys
+MCP_PROTOCOL=http
 LOG_LEVEL=INFO
 ```
 
@@ -160,6 +165,225 @@ MCP_PROTOCOL=sse uv run python main.py   # uses Settings.MCP_SERVER_HOST/PORT
 Using pip/venv, replace `uv run` with `python` as needed.
 
 Tip: For stdio, configure your MCP client to launch the command above as a subprocess.
+
+## Claude Desktop Configuration
+
+Claude Desktop can connect to this MCP server using the stdio transport. Configure it by editing the Claude Desktop configuration file.
+
+### Configuration File Location
+
+The configuration file location depends on your operating system:
+
+**macOS:**
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Windows:**
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+**Linux:**
+```
+~/.config/Claude/claude_desktop_config.json
+```
+
+If the file doesn't exist, create it with the appropriate content below.
+
+### Configuration with uv (Recommended)
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "joke-server": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/absolute/path/to/mcp-joke-server",
+        "run",
+        "python",
+        "main.py"
+      ],
+      "env": {
+        "API_BASE_URL": "https://official-joke-api.appspot.com",
+        "LOCAL_TOKEN": "your-secret-token-here",
+        "MCP_PROTOCOL": "stdio",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+**Important:** Replace `/absolute/path/to/mcp-joke-server` with the actual absolute path to your project directory.
+
+### Configuration with Python Virtual Environment
+
+If using a virtual environment instead of uv:
+
+```json
+{
+  "mcpServers": {
+    "joke-server": {
+      "command": "/absolute/path/to/mcp-joke-server/.venv/bin/python",
+      "args": [
+        "main.py"
+      ],
+      "cwd": "/absolute/path/to/mcp-joke-server",
+      "env": {
+        "API_BASE_URL": "https://official-joke-api.appspot.com",
+        "LOCAL_TOKEN": "your-secret-token-here",
+        "MCP_PROTOCOL": "stdio",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+**Windows example:**
+```json
+{
+  "mcpServers": {
+    "joke-server": {
+      "command": "C:\\Users\\YourName\\Projects\\mcp-joke-server\\.venv\\Scripts\\python.exe",
+      "args": [
+        "main.py"
+      ],
+      "cwd": "C:\\Users\\YourName\\Projects\\mcp-joke-server",
+      "env": {
+        "API_BASE_URL": "https://official-joke-api.appspot.com",
+        "LOCAL_TOKEN": "your-secret-token-here",
+        "MCP_PROTOCOL": "stdio",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+Required:
+- `API_BASE_URL`: URL of the jokes API
+- `LOCAL_TOKEN`: Authentication token (required for server initialization, but not validated in stdio mode)
+
+Optional:
+- `MCP_PROTOCOL`: Set to `stdio` for Claude Desktop (default)
+- `LOG_LEVEL`: Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`)
+- `LOG_FILE`: Path to log file (default: `logs/mcp_server.log`)
+
+### Verifying the Configuration
+
+After configuring Claude Desktop:
+
+1. **Restart Claude Desktop** completely (quit and reopen)
+2. **Check the server status:**
+   - Open Claude Desktop
+   - Look for the MCP icon (usually in the toolbar or settings)
+   - Verify "joke-server" appears in the list of available servers
+   - Check if it shows as "Connected" or "Running"
+
+3. **Test the connection:**
+   - Ask Claude to use the joke tools
+   - Example prompt: "Can you get me a random joke using the available tools?"
+   - Claude should be able to call `tool_get_joke` and other registered tools
+
+### Troubleshooting Claude Desktop Connection
+
+**Server doesn't appear in Claude Desktop:**
+- Check the JSON syntax in `claude_desktop_config.json` (use a JSON validator)
+- Verify the file is saved in the correct location for your OS
+- Ensure the file has the correct name: `claude_desktop_config.json`
+- Restart Claude Desktop after making changes
+
+**Server appears but shows as "Failed" or "Error":**
+- Check that the paths are absolute (not relative)
+- Verify the Python executable or uv command exists at the specified path
+- Ensure all environment variables are set correctly
+- Check the Claude Desktop logs for detailed error messages
+
+**Claude Desktop Logs Location:**
+
+- **macOS:** `~/Library/Logs/Claude/mcp*.log`
+- **Windows:** `%APPDATA%\Claude\logs\mcp*.log`
+- **Linux:** `~/.config/Claude/logs/mcp*.log`
+
+**Tools work but return errors:**
+- Verify `API_BASE_URL` is accessible from your network
+- Check that `LOCAL_TOKEN` is set (even though stdio doesn't validate it, the server requires it)
+- Review the server logs in `logs/mcp_server.log` for detailed error information
+
+**Permission Issues (macOS/Linux):**
+```bash
+# Make sure the Python executable is executable
+chmod +x /path/to/.venv/bin/python
+
+# Ensure the project directory is readable
+chmod -R 755 /path/to/mcp-joke-server
+```
+
+### Using Multiple MCP Servers
+
+You can configure multiple MCP servers in Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "joke-server": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/mcp-joke-server", "run", "python", "main.py"],
+      "env": {
+        "API_BASE_URL": "https://official-joke-api.appspot.com",
+        "LOCAL_TOKEN": "token-1",
+        "MCP_PROTOCOL": "stdio"
+      }
+    },
+    "another-server": {
+      "command": "/path/to/another-server",
+      "args": ["--config", "config.json"],
+      "env": {
+        "SOME_VAR": "value"
+      }
+    }
+  }
+}
+```
+
+### Development Tips
+
+**Viewing Server Output:**
+
+Since Claude Desktop runs the server as a background process, you won't see stdout directly. Check the logs:
+
+```bash
+# Monitor server logs in real-time
+tail -f logs/mcp_server.log
+```
+
+**Testing Configuration Before Adding to Claude Desktop:**
+
+Test your configuration manually first:
+
+```bash
+# Run the exact command Claude Desktop will use
+uv --directory /absolute/path/to/mcp-joke-server run python main.py
+
+# Or with venv
+/absolute/path/to/.venv/bin/python main.py
+```
+
+If this command works, the Claude Desktop configuration should work too.
+
+**Hot Reloading:**
+
+When you make code changes:
+1. Claude Desktop must be restarted to reload the server
+2. Or disconnect and reconnect the server from Claude Desktop settings
+3. The server process is killed and restarted each time
 
 ## Scripts (Makefile)
 
@@ -222,13 +446,159 @@ docker compose --profile stdio up mcp-server-stdio  # stdio (dev)
 
 See `DOCKER.md` for more details.
 
-TODO: The Compose file includes a healthcheck referencing `/health`; confirm or implement a matching endpoint in HTTP mode.
+## Authentication
+
+The server implements Bearer token authentication for HTTP and SSE transports via a custom middleware (`LocalTokenAuthMiddleware` in `main.py`).
+
+### How it Works
+
+- **HTTP/SSE Transports**: All tool calls require a valid Bearer token in the `Authorization` header
+- **STDIO Transport**: No authentication required (runs in trusted local environment)
+
+### Usage
+
+Include the token in your HTTP requests:
+
+```bash
+# Example: Call a tool with authentication
+curl -X POST http://localhost:8000/call-tool \
+  -H "Authorization: Bearer -KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tool_get_joke"}'
+```
+
+For a complete Python client example with authentication, see `examples/authenticated_http_client.py`.
+
+### Token Validation
+
+The `LocalTokenValidator` class (`utils/auth.py`) validates tokens by comparing them with the `LOCAL_TOKEN` environment variable. Failed authentication returns a `ToolError` with a descriptive message.
+
+### Security Notes
+
+- Always use HTTPS in production to protect tokens in transit
+- Rotate tokens periodically
+- Never commit tokens to version control
+- Use environment variables or secrets management systems
+
+## Testing with MCP Inspector
+
+The MCP Inspector allows you to explore and invoke server tools interactively. It supports both stdio and HTTP transports and requires Node.js 18+ to use `npx`.
+
+### Installation
+
+The Inspector doesn't require permanent installation:
+
+```bash
+npx @modelcontextprotocol/inspector@latest --help
+```
+
+### Option A: stdio Transport (No Authentication Required)
+
+The Inspector launches the server as a subprocess. Environment variables must be passed with `--env`.
+
+With uv:
+
+```bash
+npx @modelcontextprotocol/inspector@latest \
+  --command "uv run python main.py" \
+  --env API_BASE_URL=https://official-joke-api.appspot.com \
+  --env LOCAL_TOKEN=your-secret-token-here \
+  --env MCP_PROTOCOL=stdio
+```
+
+With pip/venv:
+
+```bash
+npx @modelcontextprotocol/inspector@latest \
+  --command "python main.py" \
+  --env API_BASE_URL=https://official-joke-api.appspot.com \
+  --env LOCAL_TOKEN=your-secret-token-here \
+  --env MCP_PROTOCOL=stdio
+```
+
+**Note:** Although `LOCAL_TOKEN` is required for the server to start, stdio transport does not enforce authentication as it runs in a trusted local environment.
+
+### Option B: HTTP Transport (Authentication Required)
+
+For HTTP transport, you need two terminals: one to run the server and another to connect the Inspector.
+
+#### Terminal 1: Start the HTTP Server
+
+```bash
+API_BASE_URL=https://official-joke-api.appspot.com \
+LOCAL_TOKEN=-KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys \
+MCP_PROTOCOL=http \
+MCP_SERVER_HOST=127.0.0.1 \
+MCP_SERVER_PORT=8000 \
+uv run python main.py
+```
+
+Or with pip/venv:
+
+```bash
+API_BASE_URL=https://official-joke-api.appspot.com \
+LOCAL_TOKEN=-KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys \
+MCP_PROTOCOL=http \
+MCP_SERVER_HOST=127.0.0.1 \
+MCP_SERVER_PORT=8000 \
+python main.py
+```
+
+#### Terminal 2: Connect Inspector with Authentication
+
+The Inspector needs to send the Bearer token with every request:
+
+```bash
+# Using environment variable for token
+export LOCAL_TOKEN="-KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys"
+
+npx @modelcontextprotocol/inspector@latest \
+  --server-url http://127.0.0.1:8000 \
+  --header "Authorization: Bearer $LOCAL_TOKEN"
+```
+
+Or directly inline:
+
+```bash
+npx @modelcontextprotocol/inspector@latest \
+  --server-url http://127.0.0.1:8000 \
+  --header "Authorization: Bearer -KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys"
+```
+
+**Important:** The Inspector must include the `Authorization` header with a valid Bearer token, or all tool calls will fail with authentication errors.
+
+### What to Test
+
+Once connected, you should see the registered tools. Try these quick tests:
+
+- **No network required:** `tool_get_consistent_joke`
+- **Random joke:** `tool_get_joke`
+- **By ID:** `tool_get_joke_by_id` with `joke_id=42`
+- **By type:** `tool_get_joke_by_type` with `joke_type="programming"`
+- **Async variants:** `tool_aget_joke`, `tool_aget_joke_by_id`, etc.
+
+### Troubleshooting Inspector Connection
+
+**Authentication Errors (HTTP/SSE only):**
+- Verify the `Authorization` header is included with `--header`
+- Check that the token matches the server's `LOCAL_TOKEN`
+- Ensure the token format is: `Bearer <token>`
+
+**Connection Timeouts:**
+- Verify `API_BASE_URL` is set and accessible
+- Ensure the server is running and listening on the correct host/port
+- For HTTP, confirm the Inspector URL matches the server's host/port
+
+**Command Not Found:**
+- The `--command` must be exactly how you start the server
+- Include the full path if using a virtual environment
 
 ## Design Notes
 
-- Repository Pattern (`repositories/*`) abstracts data access and enables caching.
-- Strategy Pattern (`strategies/*`) selects transport and validates configuration.
-- Utilities under `utils/` include a typed HTTP client, models, logging, and formatters.
+- **Middleware Pattern** (`main.py`): `LocalTokenAuthMiddleware` intercepts tool calls to enforce authentication for HTTP/SSE transports
+- **Repository Pattern** (`repositories/*`): Abstracts data access and enables caching
+- **Strategy Pattern** (`strategies/*`): Selects transport and validates configuration
+- **Utilities** (`utils/`): Include typed HTTP client, models, logging, formatters, and authentication
 
 Further docs: see `docs/` (architecture diagrams, testing notes, refactoring summaries).
 

@@ -69,6 +69,49 @@ docker compose build
 docker build -t mcp-joke-server:latest .
 ```
 
+## Authentication
+
+The MCP server uses Bearer token authentication for HTTP and SSE transports. STDIO transport does not require authentication.
+
+### Token Configuration
+
+Set the `LOCAL_TOKEN` environment variable:
+
+```env
+LOCAL_TOKEN=your-secret-token-here
+```
+
+The default token in `docker-compose.yml` is: `-KB6aoXeiF-Qjor3LSEGh4-OOdJLCYrs5uqvUO9NCys`
+
+### Testing Authentication
+
+Test the server with authentication:
+
+```bash
+# Get the token from your .env file
+TOKEN=$(grep LOCAL_TOKEN .env | cut -d= -f2)
+
+# Make an authenticated request
+curl -X POST http://localhost:8000/call-tool \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "tool_get_joke",
+      "arguments": {}
+    }
+  }'
+```
+
+### Security Recommendations
+
+- **Change the default token** in production
+- **Use HTTPS** in production environments
+- **Never commit** tokens to version control
+- **Rotate tokens** periodically
+- Use **Docker secrets** or environment variable files for sensitive data
+
 ## Running with Custom Configuration
 
 ### Using Environment Variables
@@ -77,6 +120,7 @@ Create a `.env.docker` file:
 
 ```env
 API_BASE_URL=https://official-joke-api.appspot.com
+LOCAL_TOKEN=your-custom-token-here
 MCP_PROTOCOL=http
 MCP_SERVER_HOST=0.0.0.0
 MCP_SERVER_PORT=8000
@@ -97,6 +141,7 @@ docker run -d \
   --name mcp-joke-server \
   -p 8000:8000 \
   -e API_BASE_URL=https://official-joke-api.appspot.com \
+  -e LOCAL_TOKEN=your-secret-token-here \
   -e MCP_PROTOCOL=http \
   -e MCP_SERVER_HOST=0.0.0.0 \
   -e MCP_SERVER_PORT=8000 \

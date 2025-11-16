@@ -19,6 +19,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.3.0] - 2025-11-16
+
+### Added
+- Docker workflow and compose profiles added; initial CI/CD pipeline configuration to streamline builds and local runs. ([85db8e8](https://github.com/ecrespo/mcp-joke-server/commit/85db8e8))
+
+### Changed
+- Switched environment management from `python-decouple` to `python-dotenv` for simpler local development and `.env` handling. ([1675032](https://github.com/ecrespo/mcp-joke-server/commit/1675032))
+- README/docs refinements: expanded usage instructions, logging information, Inspector integration guidance, and general clarity improvements. ([6ede69d](https://github.com/ecrespo/mcp-joke-server/commit/6ede69d), [9e1ec83](https://github.com/ecrespo/mcp-joke-server/commit/9e1ec83))
+- Test suite expanded with comprehensive async and integration coverage (no runtime behavior changes). ([39f5c63](https://github.com/ecrespo/mcp-joke-server/commit/39f5c63))
+
+### Deprecated
+- None.
+
+### Removed
+- None.
+
+### Fixed
+- None.
+
+### Security
+- None.
+
 ## [0.2.2] - 2025-11-15
 
 ### Added

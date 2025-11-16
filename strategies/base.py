@@ -10,6 +10,8 @@ core application logic.
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from dataclasses import dataclass
+from utils.logger import setup_logger
+from utils.logging_interfaces import LoggerProtocol
 
 
 @dataclass(frozen=True)
@@ -61,7 +63,7 @@ class TransportStrategy(ABC):
     :type config: TransportConfig
     """
 
-    def __init__(self, config: TransportConfig):
+    def __init__(self, config: TransportConfig, *, logger: LoggerProtocol | None = None):
         """
         Initialize the transport strategy.
 
@@ -69,6 +71,7 @@ class TransportStrategy(ABC):
         :type config: TransportConfig
         """
         self._config = config
+        self._log: LoggerProtocol = logger or setup_logger()
 
     @property
     def config(self) -> TransportConfig:

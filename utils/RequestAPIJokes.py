@@ -11,7 +11,8 @@ from typing import Annotated, TypeVar, Callable, Any
 from pydantic import Field
 
 from utils.model import Joke, Jokes
-from utils.logger import log
+from utils.logger import setup_logger
+from utils.logging_interfaces import LoggerProtocol
 from utils.constants import URL, JOKE_TYPES, joke_type_value
 from utils.exceptions import (
     JokeAPITimeoutError,
@@ -38,7 +39,7 @@ class JokeAPIClient:
     :type timeout: float
     """
 
-    def __init__(self, base_url: str = URL, timeout: float = 10.0):
+    def __init__(self, base_url: str = URL, timeout: float = 10.0, *, logger: LoggerProtocol | None = None):
         """
         Initialize the Joke API client.
 
@@ -47,6 +48,8 @@ class JokeAPIClient:
         """
         self.base_url = base_url
         self.timeout = timeout
+        # Inyección de logger (fallback seguro para compatibilidad)
+        self._log: LoggerProtocol = logger or setup_logger()
 
     def _make_request(
         self,
@@ -77,17 +80,17 @@ class JokeAPIClient:
         try:
             response = httpx.get(url, timeout=self.timeout)
         except httpx.ReadTimeout as e:
-            log.error(f"Timeout al conectar con {url}: {e}")
+            self._log.error(f"Timeout al conectar con {url}: {e}")
             raise JokeAPITimeoutError()
         except httpx.ConnectError as e:
-            log.error(f"Error de conexión con {url}: {e}")
+            self._log.error(f"Error de conexión con {url}: {e}")
             raise JokeAPIConnectionError()
         except httpx.HTTPError as e:
-            log.error(f"Error HTTP inesperado en {url}: {e}")
+            self._log.error(f"Error HTTP inesperado en {url}: {e}")
             raise JokeAPIConnectionError(f"Error HTTP inesperado: {e}")
 
         if response.status_code != 200:
-            log.error(f"Error {response.status_code} al obtener {url}: {response.text}")
+            self._log.error(f"Error {response.status_code} al obtener {url}: {response.text}")
             raise JokeAPIHTTPError(
                 message="Error al obtener información del servicio de Jokes",
                 status_code=response.status_code,
@@ -98,7 +101,7 @@ class JokeAPIClient:
             response_data = response.json()
             return parser(response_data)
         except (ValueError, TypeError, KeyError) as e:
-            log.error(f"Error al parsear respuesta de {url}: {e}")
+            self._log.error(f"Error al parsear respuesta de {url}: {e}")
             raise JokeAPIParseError(f"Error al parsear la respuesta: {e}")
 
 
@@ -116,9 +119,10 @@ class AsyncJokeAPIClient:
     :type timeout: float
     """
 
-    def __init__(self, base_url: str = URL, timeout: float = 10.0):
+    def __init__(self, base_url: str = URL, timeout: float = 10.0, *, logger: LoggerProtocol | None = None):
         self.base_url = base_url
         self.timeout = timeout
+        self._log: LoggerProtocol = logger or setup_logger()
 
     async def _make_request_async(
         self,
@@ -142,17 +146,17 @@ class AsyncJokeAPIClient:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url)
         except httpx.ReadTimeout as e:
-            log.error(f"Timeout al conectar con {url}: {e}")
+            self._log.error(f"Timeout al conectar con {url}: {e}")
             raise JokeAPITimeoutError()
         except httpx.ConnectError as e:
-            log.error(f"Error de conexión con {url}: {e}")
+            self._log.error(f"Error de conexión con {url}: {e}")
             raise JokeAPIConnectionError()
         except httpx.HTTPError as e:
-            log.error(f"Error HTTP inesperado en {url}: {e}")
+            self._log.error(f"Error HTTP inesperado en {url}: {e}")
             raise JokeAPIConnectionError(f"Error HTTP inesperado: {e}")
 
         if response.status_code != 200:
-            log.error(f"Error {response.status_code} al obtener {url}: {response.text}")
+            self._log.error(f"Error {response.status_code} al obtener {url}: {response.text}")
             raise JokeAPIHTTPError(
                 message="Error al obtener información del servicio de Jokes",
                 status_code=response.status_code,
@@ -163,7 +167,7 @@ class AsyncJokeAPIClient:
             response_data = response.json()
             return parser(response_data)
         except (ValueError, TypeError, KeyError) as e:
-            log.error(f"Error al parsear respuesta de {url}: {e}")
+            self._log.error(f"Error al parsear respuesta de {url}: {e}")
             raise JokeAPIParseError(f"Error al parsear la respuesta: {e}")
 
     async def get_joke(self) -> Joke:
@@ -243,7 +247,7 @@ def _patch_sync_methods_into_client():
 _patch_sync_methods_into_client()
 
 
-# Singleton instance for convenience
+# Singleton instance for convenience (usa logger propio por defecto)
 _client = JokeAPIClient()
 _aclient = AsyncJokeAPIClient()
 

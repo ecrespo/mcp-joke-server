@@ -19,7 +19,8 @@ from utils.exceptions import (
     JokeAPIHTTPError,
     JokeAPIParseError,
 )
-from utils.logger import log
+from utils.logger import setup_logger
+from utils.logging_interfaces import LoggerProtocol
 
 
 class HTTPJokeRepository(JokeRepository):
@@ -34,7 +35,7 @@ class HTTPJokeRepository(JokeRepository):
     :type _client: JokeAPIClient
     """
 
-    def __init__(self, client: JokeAPIClient | None = None):
+    def __init__(self, client: JokeAPIClient | None = None, *, logger: LoggerProtocol | None = None):
         """
         Initialize the HTTP joke repository.
 
@@ -43,7 +44,8 @@ class HTTPJokeRepository(JokeRepository):
         :type client: JokeAPIClient | None
         """
         self._client = client or JokeAPIClient()
-        log.info(f"HTTPJokeRepository initialized with base_url: {self._client.base_url}")
+        self._log: LoggerProtocol = logger or setup_logger()
+        self._log.info(f"HTTPJokeRepository initialized with base_url: {self._client.base_url}")
 
     def get_random_joke(self) -> Joke:
         """
@@ -54,12 +56,12 @@ class HTTPJokeRepository(JokeRepository):
         :raises JokeRepositoryError: If the operation fails
         """
         try:
-            log.debug("Fetching random joke from HTTP API")
+            self._log.debug("Fetching random joke from HTTP API")
             joke = self._client.get_joke()
-            log.debug(f"Successfully fetched joke ID: {joke.id}")
+            self._log.debug(f"Successfully fetched joke ID: {joke.id}")
             return joke
         except JokeAPIError as e:
-            log.error(f"Failed to fetch random joke: {e}")
+            self._log.error(f"Failed to fetch random joke: {e}")
             raise JokeRepositoryError(
                 "Failed to retrieve random joke from repository",
                 cause=e
@@ -79,12 +81,12 @@ class HTTPJokeRepository(JokeRepository):
         :raises JokeRepositoryError: If the operation fails
         """
         try:
-            log.debug(f"Fetching {count} random jokes from HTTP API")
+            self._log.debug(f"Fetching {count} random jokes from HTTP API")
             jokes = self._client.get_ten_jokes()
-            log.debug(f"Successfully fetched {len(jokes.jokes)} jokes")
+            self._log.debug(f"Successfully fetched {len(jokes.jokes)} jokes")
             return jokes
         except JokeAPIError as e:
-            log.error(f"Failed to fetch random jokes: {e}")
+            self._log.error(f"Failed to fetch random jokes: {e}")
             raise JokeRepositoryError(
                 f"Failed to retrieve {count} random jokes from repository",
                 cause=e
@@ -102,22 +104,22 @@ class HTTPJokeRepository(JokeRepository):
         :raises JokeRepositoryError: If the operation fails for other reasons
         """
         try:
-            log.debug(f"Fetching joke by ID: {joke_id}")
+            self._log.debug(f"Fetching joke by ID: {joke_id}")
             joke = self._client.get_joke_by_id(joke_id)
-            log.debug(f"Successfully fetched joke ID: {joke.id}")
+            self._log.debug(f"Successfully fetched joke ID: {joke.id}")
             return joke
         except JokeAPIHTTPError as e:
             # If we get a 404, translate it to JokeNotFoundError
             if e.status_code == 404:
-                log.warning(f"Joke with ID {joke_id} not found")
+                self._log.warning(f"Joke with ID {joke_id} not found")
                 raise JokeNotFoundError(joke_id)
-            log.error(f"HTTP error fetching joke {joke_id}: {e}")
+            self._log.error(f"HTTP error fetching joke {joke_id}: {e}")
             raise JokeRepositoryError(
                 f"Failed to retrieve joke with ID {joke_id}",
                 cause=e
             )
         except JokeAPIError as e:
-            log.error(f"Failed to fetch joke {joke_id}: {e}")
+            self._log.error(f"Failed to fetch joke {joke_id}: {e}")
             raise JokeRepositoryError(
                 f"Failed to retrieve joke with ID {joke_id}",
                 cause=e
@@ -135,13 +137,13 @@ class HTTPJokeRepository(JokeRepository):
         """
         try:
             jt = joke_type_value(joke_type)
-            log.debug(f"Fetching jokes of type: {jt}")
+            self._log.debug(f"Fetching jokes of type: {jt}")
             jokes = self._client.get_jokes_by_type(joke_type)
-            log.debug(f"Successfully fetched {len(jokes.jokes)} jokes of type {jt}")
+            self._log.debug(f"Successfully fetched {len(jokes.jokes)} jokes of type {jt}")
             return jokes
         except JokeAPIError as e:
             jt = joke_type_value(joke_type)
-            log.error(f"Failed to fetch jokes of type {jt}: {e}")
+            self._log.error(f"Failed to fetch jokes of type {jt}: {e}")
             raise JokeRepositoryError(
                 f"Failed to retrieve jokes of type '{jt}' from repository",
                 cause=e
@@ -158,18 +160,18 @@ class HTTPJokeRepository(JokeRepository):
         :rtype: bool
         """
         try:
-            log.debug("Performing health check on HTTP API")
+            self._log.debug("Performing health check on HTTP API")
             self._client.get_joke()
-            log.info("Health check passed - HTTP API is accessible")
+            self._log.info("Health check passed - HTTP API is accessible")
             return True
         except (JokeAPITimeoutError, JokeAPIConnectionError) as e:
-            log.warning(f"Health check failed - API is not accessible: {e}")
+            self._log.warning(f"Health check failed - API is not accessible: {e}")
             return False
         except JokeAPIError as e:
-            log.warning(f"Health check failed with error: {e}")
+            self._log.warning(f"Health check failed with error: {e}")
             return False
         except Exception as e:
-            log.error(f"Unexpected error during health check: {e}")
+            self._log.error(f"Unexpected error during health check: {e}")
             return False
 
     def __repr__(self) -> str:

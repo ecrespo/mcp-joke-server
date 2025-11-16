@@ -12,7 +12,8 @@ from strategies.base import TransportStrategy, TransportConfig
 from strategies.stdio_strategy import StdioTransportStrategy
 from strategies.http_strategy import HttpTransportStrategy
 from strategies.sse_strategy import SseTransportStrategy
-from utils.logger import log
+from utils.logger import setup_logger
+from utils.logging_interfaces import LoggerProtocol
 
 
 class TransportType(str, Enum):
@@ -88,7 +89,9 @@ class TransportStrategyFactory:
     def create(
         cls,
         transport_type: TransportType | str,
-        config: TransportConfig
+        config: TransportConfig,
+        *,
+        logger: LoggerProtocol | None = None,
     ) -> TransportStrategy:
         """
         Create a transport strategy instance.
@@ -119,8 +122,9 @@ class TransportStrategyFactory:
             )
 
         # Instantiate and return the strategy
-        log.debug(f"Creating {strategy_class.__name__} with config: {config}")
-        strategy = strategy_class(config)
+        _log = logger or setup_logger()
+        _log.debug(f"Creating {strategy_class.__name__} with config: {config}")
+        strategy = strategy_class(config, logger=_log)
 
         return strategy
 
@@ -148,7 +152,8 @@ class TransportStrategyFactory:
                 f"got {strategy_class}"
             )
 
-        log.info(
+        _log = setup_logger()
+        _log.info(
             f"Registering custom strategy: {strategy_class.__name__} "
             f"for transport type {transport_type.value}"
         )
@@ -172,6 +177,7 @@ def create_transport_strategy(
     host: str | None = None,
     port: int | None = None,
     show_banner: bool = True,
+    logger: LoggerProtocol | None = None,
 ) -> TransportStrategy:
     """
     Create a transport strategy with explicit dependency injection.
@@ -199,10 +205,10 @@ def create_transport_strategy(
         )
 
     # Delegate to factory
-    return TransportStrategyFactory.create(transport_type, config)
+    return TransportStrategyFactory.create(transport_type, config, logger=logger)
 
 
-def create_transport_strategy_from_settings() -> TransportStrategy:
+def create_transport_strategy_from_settings(*, logger: LoggerProtocol | None = None) -> TransportStrategy:
     """
     Create a transport strategy from application settings.
 
@@ -226,8 +232,9 @@ def create_transport_strategy_from_settings() -> TransportStrategy:
     )
 
     # Create and return strategy (delegates to DI-friendly helper)
-    log.info(f"Creating transport strategy: {transport_type.value}")
-    strategy = create_transport_strategy(transport_type, config)
+    _log = logger or setup_logger()
+    _log.info(f"Creating transport strategy: {transport_type.value}")
+    strategy = create_transport_strategy(transport_type, config, logger=_log)
 
     # Validate before returning
     strategy.validate()

@@ -8,7 +8,6 @@ via standard input and output streams.
 
 from typing import Dict, Any
 from strategies.base import TransportStrategy, TransportConfig
-from utils.logger import log
 
 
 class StdioTransportStrategy(TransportStrategy):
@@ -70,8 +69,8 @@ class StdioTransportStrategy(TransportStrategy):
         STDIO doesn't require special preparation, but we log
         the configuration for debugging purposes.
         """
-        log.debug(f"Preparing {self.get_transport_name()} transport")
-        log.debug(f"Show banner: {self.config.show_banner}")
+        self._log.debug(f"Preparing {self.get_transport_name()} transport")
+        self._log.debug(f"Show banner: {self.config.show_banner}")
 
     def validate(self) -> bool:
         """
@@ -84,5 +83,5 @@ class StdioTransportStrategy(TransportStrategy):
         :return: True (STDIO is always valid)
         :rtype: bool
         """
-        log.info(f"Validating {self.get_transport_name()} transport configuration")
+        self._log.info(f"Validating {self.get_transport_name()} transport configuration")
         return True

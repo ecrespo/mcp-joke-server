@@ -12,7 +12,8 @@ from pydantic import Field
 from repositories.base import JokeRepository, JokeRepositoryError, JokeNotFoundError
 from utils.model import Joke, Jokes
 from utils.constants import JOKE_TYPES, joke_type_value
-from utils.logger import log
+from utils.logger import setup_logger
+from utils.logging_interfaces import LoggerProtocol
 
 
 class CacheEntry:
@@ -63,7 +64,7 @@ class CachedJokeRepository(JokeRepository):
     :ivar _stats: Cache statistics
     """
 
-    def __init__(self, repository: JokeRepository, default_ttl: int = 300):
+    def __init__(self, repository: JokeRepository, default_ttl: int = 300, *, logger: LoggerProtocol | None = None):
         """
         Initialize the cached repository.
 
@@ -80,7 +81,8 @@ class CachedJokeRepository(JokeRepository):
             'misses': 0,
             'evictions': 0,
         }
-        log.info(
+        self._log: LoggerProtocol = logger or setup_logger()
+        self._log.info(
             f"CachedJokeRepository initialized with TTL={default_ttl}s, "
             f"wrapping {type(repository).__name__}"
         )
@@ -96,16 +98,16 @@ class CachedJokeRepository(JokeRepository):
             entry = self._cache[key]
             if not entry.is_expired():
                 self._stats['hits'] += 1
-                log.debug(f"Cache HIT for key: {key}")
+                self._log.debug(f"Cache HIT for key: {key}")
                 return entry.value
             else:
                 # Entry expired, remove it
                 del self._cache[key]
                 self._stats['evictions'] += 1
-                log.debug(f"Cache entry expired and evicted: {key}")
+                self._log.debug(f"Cache entry expired and evicted: {key}")
 
         self._stats['misses'] += 1
-        log.debug(f"Cache MISS for key: {key}")
+        self._log.debug(f"Cache MISS for key: {key}")
         return None
 
     def _put_in_cache(self, key: str, value: Joke | Jokes, ttl: int | None = None):
@@ -118,7 +120,7 @@ class CachedJokeRepository(JokeRepository):
         """
         ttl = ttl or self._default_ttl
         self._cache[key] = CacheEntry(value, ttl)
-        log.debug(f"Cached value for key: {key} (TTL={ttl}s)")
+        self._log.debug(f"Cached value for key: {key} (TTL={ttl}s)")
 
     def _clear_expired(self):
         """
@@ -135,7 +137,7 @@ class CachedJokeRepository(JokeRepository):
             self._stats['evictions'] += 1
 
         if expired_keys:
-            log.debug(f"Cleared {len(expired_keys)} expired cache entries")
+            self._log.debug(f"Cleared {len(expired_keys)} expired cache entries")
 
     def get_random_joke(self) -> Joke:
         """
@@ -148,7 +150,7 @@ class CachedJokeRepository(JokeRepository):
         :raises JokeRepositoryError: If the operation fails
         """
         # Don't cache random jokes - they should be random!
-        log.debug("Fetching random joke (not cached)")
+        self._log.debug("Fetching random joke (not cached)")
         return self._repository.get_random_joke()
 
     def get_random_jokes(self, count: int = 10) -> Jokes:
@@ -164,7 +166,7 @@ class CachedJokeRepository(JokeRepository):
         :raises JokeRepositoryError: If the operation fails
         """
         # Don't cache random jokes - they should be random!
-        log.debug(f"Fetching {count} random jokes (not cached)")
+        self._log.debug(f"Fetching {count} random jokes (not cached)")
         return self._repository.get_random_jokes(count)
 
     def get_joke_by_id(self, joke_id: Annotated[int, Field(ge=1, le=451)]) -> Joke:
@@ -188,7 +190,7 @@ class CachedJokeRepository(JokeRepository):
             return cached_joke
 
         # Cache miss - fetch from wrapped repository
-        log.debug(f"Fetching joke {joke_id} from repository")
+        self._log.debug(f"Fetching joke {joke_id} from repository")
         joke = self._repository.get_joke_by_id(joke_id)
 
         # Cache the result
@@ -215,7 +217,7 @@ class CachedJokeRepository(JokeRepository):
             return cached_jokes
 
         # Cache miss - fetch from wrapped repository
-        log.debug(f"Fetching jokes of type {jt} from repository")
+        self._log.debug(f"Fetching jokes of type {jt} from repository")
         jokes = self._repository.get_jokes_by_type(joke_type)
 
         # Cache the result
@@ -242,7 +244,7 @@ class CachedJokeRepository(JokeRepository):
         """
         cache_size = len(self._cache)
         self._cache.clear()
-        log.info(f"Cache cleared - removed {cache_size} entries")
+        self._log.info(f"Cache cleared - removed {cache_size} entries")
 
     def get_cache_stats(self) -> dict[str, int]:
         """

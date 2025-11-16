@@ -9,7 +9,6 @@ enabling remote clients to connect to the MCP server.
 from typing import Dict, Any
 import socket
 from strategies.base import TransportStrategy, TransportConfig
-from utils.logger import log
 
 
 class HttpTransportStrategy(TransportStrategy):
@@ -77,9 +76,9 @@ class HttpTransportStrategy(TransportStrategy):
         Logs the server configuration and validates that the
         port is available before starting.
         """
-        log.debug(f"Preparing {self.get_transport_name()} transport")
-        log.info(f"Server will listen on {self.config.host}:{self.config.port}")
-        log.debug(f"Show banner: {self.config.show_banner}")
+        self._log.debug(f"Preparing {self.get_transport_name()} transport")
+        self._log.info(f"Server will listen on {self.config.host}:{self.config.port}")
+        self._log.debug(f"Show banner: {self.config.show_banner}")
 
     def validate(self) -> bool:
         """
@@ -94,7 +93,7 @@ class HttpTransportStrategy(TransportStrategy):
         :rtype: bool
         :raises ValueError: If configuration is invalid
         """
-        log.info(f"Validating {self.get_transport_name()} transport configuration")
+        self._log.info(f"Validating {self.get_transport_name()} transport configuration")
 
         # Port validation (already done in TransportConfig, but double-check)
         if not (1 <= self.config.port <= 65535):
@@ -114,7 +113,7 @@ class HttpTransportStrategy(TransportStrategy):
                 "Use a valid IP address or '0.0.0.0' for all interfaces."
             )
 
-        log.info(f"HTTP transport configuration is valid")
+        self._log.info("HTTP transport configuration is valid")
         return True
 
     def _is_port_available(self) -> bool:
@@ -132,7 +131,7 @@ class HttpTransportStrategy(TransportStrategy):
                 sock.bind((self.config.host, self.config.port))
                 return True
         except OSError as e:
-            log.warning(
+            self._log.warning(
                 f"Port {self.config.port} on {self.config.host} is not available: {e}"
             )
             return False
@@ -171,5 +170,5 @@ class HttpTransportStrategy(TransportStrategy):
             socket.gethostbyname(self.config.host)
             return True
         except OSError:
-            log.error(f"Cannot resolve host: {self.config.host}")
+            self._log.error(f"Cannot resolve host: {self.config.host}")
             return False
